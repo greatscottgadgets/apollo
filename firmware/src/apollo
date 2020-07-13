@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "/home/ktemkin/Projects/luna/firmware/apollo"
+		},
+		{
+			"path": "/home/ktemkin/Projects/luna/tools"
+		},
+		{
+			"path": "/home/ktemkin/Projects/luna/gateware/blinky_verilog"
+		}
+	],
+	"settings": {}
+}
