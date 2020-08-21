@@ -16,6 +16,7 @@
 #include "led.h"
 #include "uart.h"
 
+#ifdef _BOARD_HAS_DEBUG_SPI
 
 // SPI comms buffers.
 // TODO: should these be unified into a single general buffer for requests,
@@ -222,3 +223,71 @@ bool handle_release_configuration_spi(uint8_t rhport, tusb_control_request_t con
 
 	return tud_control_xfer(rhport, request, NULL, 0);
 }
+
+
+#else
+
+/**
+ * Set up the debug SPI configuration.
+ */
+void debug_spi_init(void)
+{
+}
+
+
+
+/**
+ * Transmits and receives a collection of bytes over the SPI bus.
+ */
+void debug_spi_send(uint8_t *tx_buffer, uint8_t *rx_buffer, size_t length)
+{
+	return;
+}
+
+
+/**
+ * Request that sends a block of data over our debug SPI.
+ * 	wValue: 0 = this transaction ends a transfer;
+ *          1 = transaction will continue after
+ *  wIndex: 0 = this transaction should be made with CS low;
+ *          1 = this transaction should be made with CS high
+ */
+bool handle_debug_spi_send(uint8_t rhport, tusb_control_request_t const* request)
+{
+	return false;
+}
+
+
+bool handle_debug_spi_send_complete(uint8_t rhport, tusb_control_request_t const* request)
+{
+	return false;
+}
+
+
+/**
+ * Request that changes the active LED pattern.
+ */
+bool handle_debug_spi_get_response(uint8_t rhport, tusb_control_request_t const* request)
+{
+	return false;
+}
+
+
+/**
+ * Request that grabs access to the configuration SPI lines.
+ */
+bool handle_take_configuration_spi(uint8_t rhport, tusb_control_request_t const* request)
+{
+	return false;
+}
+
+
+/**
+ * Request that releases access to the configuration SPI lines.
+ */
+bool handle_release_configuration_spi(uint8_t rhport, tusb_control_request_t const* request)
+{
+	return false;
+}
+
+#endif

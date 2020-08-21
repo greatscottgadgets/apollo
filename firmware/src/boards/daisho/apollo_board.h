@@ -10,6 +10,8 @@
 #ifndef __APOLLO_BOARD_H__
 #define __APOLLO_BOARD_H__
 
+#define _BOARD_HAS_DEBUG_SPI
+
 #include <chip.h>
 #include <inttypes.h>
 #include <stdbool.h>

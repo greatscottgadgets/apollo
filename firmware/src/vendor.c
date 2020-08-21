@@ -132,6 +132,7 @@ bool tud_vendor_control_request_cb(uint8_t rhport, tusb_control_request_t const*
 			return handle_set_led_pattern(rhport, request);
 
 		// Debug SPI requests.
+#ifdef _BOARD_HAS_DEBUG_SPI
 		case VENDOR_REQUEST_DEBUG_SPI_SEND:
 			return handle_debug_spi_send(rhport, request);
 		case VENDOR_REQUEST_DEBUG_SPI_READ_RESPONSE:
@@ -142,6 +143,7 @@ bool tud_vendor_control_request_cb(uint8_t rhport, tusb_control_request_t const*
 			return handle_take_configuration_spi(rhport, request);
 		case VENDOR_REQUEST_RELEASE_FLASH_LINES:
 			return handle_release_configuration_spi(rhport, request);
+#endif
 
 		// Self-test requests.
 		/*

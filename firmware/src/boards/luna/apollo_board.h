@@ -17,7 +17,7 @@
 
 // Indicate that this board features a configuration flash.
 #define _BOARD_HAS_CONFIG_FLASH_
-
+#define _BOARD_HAS_DEBUG_SPI
 
 /**
  * GPIO pins for each of the microcontroller LEDs.
