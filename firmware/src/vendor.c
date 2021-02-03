@@ -96,16 +96,13 @@ bool handle_trigger_fpga_reconfiguration(uint8_t rhport, tusb_control_request_t 
 /**
  * Primary vendor request handler.
  */
-bool tud_vendor_control_request_cb(uint8_t rhport, tusb_control_request_t const* request)
+static bool handle_vendor_request_setup(uint8_t rhport, tusb_control_request_t const* request)
 {
-	// FIXME: clean this up to use a function pointer to grab the request?
-
 	switch(request->bRequest) {
 		case VENDOR_REQUEST_GET_ID:
 			return handle_get_id_request(rhport, request);
 		case VENDOR_REQUEST_TRIGGER_RECONFIGURATION:
 			return handle_trigger_fpga_reconfiguration(rhport, request);
-
 
 		// JTAG requests
 		case VENDOR_REQUEST_JTAG_CLEAR_OUT_BUFFER:
@@ -163,7 +160,7 @@ bool tud_vendor_control_request_cb(uint8_t rhport, tusb_control_request_t const*
  * This is used to complete any actions that need to happen once data is available, e.g.
  * during an IN transfer.
  */
-bool tud_vendor_control_complete_cb(uint8_t rhport, tusb_control_request_t const * request)
+static bool handle_vendor_request_complete(uint8_t rhport, tusb_control_request_t const * request)
 {
 	switch (request->bRequest) {
 		case VENDOR_REQUEST_DEBUG_SPI_SEND:
@@ -173,5 +170,21 @@ bool tud_vendor_control_complete_cb(uint8_t rhport, tusb_control_request_t const
 		default:
 			return true;
 	}
+
+}
+
+
+bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t const * request)
+{
+	switch (stage) {
+		case CONTROL_STAGE_SETUP:
+			return handle_vendor_request_setup(rhport, request);
+		case CONTROL_STAGE_DATA:
+			return handle_vendor_request_complete(rhport, request);
+		default:
+			return true;;
+
+	}
+
 
 }

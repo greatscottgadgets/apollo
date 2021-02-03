@@ -117,7 +117,6 @@ bool handle_jtag_start(uint8_t rhport, tusb_control_request_t const* request)
 	led_set_blink_pattern(BLINK_JTAG_CONNECTED);
 	jtag_init();
 
-
 	return tud_control_xfer(rhport, request, NULL, 0);
 }
 

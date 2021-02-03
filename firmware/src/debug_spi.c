@@ -19,8 +19,6 @@
 #ifdef _BOARD_HAS_DEBUG_SPI
 
 // SPI comms buffers.
-// TODO: should these be unified into a single general buffer for requests,
-// for e.g. the smaller SAMD11?
 // 256 + 4 fits a SPI flash page and command
 uint8_t spi_in_buffer[256 + 4];
 uint8_t spi_out_buffer[256 + 4];
