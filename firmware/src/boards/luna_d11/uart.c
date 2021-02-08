@@ -34,11 +34,11 @@ bool uart_active = false;
 static void _uart_configure_pinmux(bool use_for_uart)
 {
 	if (use_for_uart) {
+		gpio_set_pin_function(PIN_PA11, MUX_PA11D_SERCOM2_PAD3);
 		gpio_set_pin_function(PIN_PA14, MUX_PA14D_SERCOM2_PAD0);
-		gpio_set_pin_function(PIN_PA15, MUX_PA15D_SERCOM2_PAD1);
 	} else {
+		gpio_set_pin_function(PIN_PA11, GPIO_PIN_FUNCTION_OFF);
 		gpio_set_pin_function(PIN_PA14, GPIO_PIN_FUNCTION_OFF);
-		gpio_set_pin_function(PIN_PA15, GPIO_PIN_FUNCTION_OFF);
 	}
 }
 
@@ -92,8 +92,8 @@ void uart_init(bool configure_pinmux, unsigned long baudrate)
 	}
 
 	// Set up clocking for the SERCOM peripheral.
-	_pm_enable_bus_clock(PM_BUS_APBC, SERCOM1);
-	_gclk_enable_channel(SERCOM1_GCLK_ID_CORE, GCLK_CLKCTRL_GEN_GCLK0_Val);
+	_pm_enable_bus_clock(PM_BUS_APBC, sercom);
+	_gclk_enable_channel(SERCOM2_GCLK_ID_CORE, GCLK_CLKCTRL_GEN_GCLK0_Val);
 
 	// Configure the SERCOM for UART mode.
 	sercom->USART.CTRLA.reg =
@@ -106,7 +106,8 @@ void uart_init(bool configure_pinmux, unsigned long baudrate)
 
 	// Configure our baud divisor.
 	// From Atmel:
-	uint32_t baud = 65536 * (uint32_t)(CONF_CPU_FREQUENCY - 16 * baudrate) / (uint32_t)CONF_CPU_FREQUENCY;
+	const uint32_t div_factor = CONF_CPU_FREQUENCY / 65536UL;
+	const uint32_t baud = (CONF_CPU_FREQUENCY - 16 * baudrate) / div_factor;
 	sercom->USART.BAUD.reg = baud;
 
 	// Configure TX/RX and framing.
@@ -124,7 +125,7 @@ void uart_init(bool configure_pinmux, unsigned long baudrate)
 	sercom->USART.INTENSET.reg = SERCOM_USART_INTENSET_RXC;
 
 	// Enable the UART IRQ.
-	NVIC_EnableIRQ(SERCOM1_IRQn);
+	NVIC_EnableIRQ(SERCOM2_IRQn);
 
 	// Finally, enable the SERCOM.
 	sercom->USART.CTRLA.bit.ENABLE = 1;
@@ -142,7 +143,7 @@ __attribute__((weak)) void uart_byte_received_cb(uint8_t byte) {}
 /**
  * UART interrupt handler.
  */
-void SERCOM1_Handler(void)
+void SERCOM2_Handler(void)
 {
 	// If we've just received a character, handle it.
 	if (sercom->USART.INTFLAG.bit.RXC)
