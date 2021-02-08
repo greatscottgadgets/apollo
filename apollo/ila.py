@@ -8,7 +8,9 @@
 
 from nmigen import Cat
 
-from luna.apollo.support.bits import bits
+from .support.bits import bits
+
+# FIXME: remove this?
 from luna.gateware.debug.ila  import ILAFrontend
 
 
