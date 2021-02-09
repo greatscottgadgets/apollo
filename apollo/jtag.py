@@ -34,6 +34,10 @@ REQUEST_JTAG_STOP             = 0xbe
 # not any straggling bits. Setting this quirk will automatically handle this case.
 QUIRK_FLIP_BITS_IN_WHOLE_BYTES = (1 << 0)
 
+# In some cases, we may want to always bitbang our JTAG; e.g. if a device doesn't
+# agree with the target's timing properties.
+QUIRK_ALWAYS_BITBANG_JTAG      = (1 << 1)
+
 
 class JTAGPatternError(IOError):
     """ Class for errors that come from a JTAG read not matching the expected response. """
@@ -150,6 +154,7 @@ class JTAGChain:
 
         # By default, don't assume any quirks.
         self._bit_reverse_whole_bytes = False
+        self._force_jtag_bitbang      = False
 
 
     def initialize(self):
@@ -336,7 +341,11 @@ class JTAGChain:
             bytes_to_send = self._reverse_bits_where_necessary(bits_to_scan, byte_data)
             self.debugger.out_request(REQUEST_JTAG_SET_OUT_BUFFER, data=bytes_to_send)
 
-        self.debugger.out_request(REQUEST_JTAG_SCAN, value=bits_to_scan, index=1 if advance_state else 0)
+        # Figure out the flags we're going to use for our transaction.
+        flags  = 0b01 if advance_state            else 0
+        flags |= 0b10 if self._force_jtag_bitbang else 0
+
+        self.debugger.out_request(REQUEST_JTAG_SCAN, value=bits_to_scan, index=flags)
 
         if not ignore_response:
             result = self.debugger.in_request(REQUEST_JTAG_GET_IN_BUFFER, length=bytes_to_read)
@@ -606,6 +615,10 @@ class JTAGChain:
         if close_after:
             svf_file.close()
 
+
+    def force_bitbang_mode(self, force_enable : bool):
+        """ Controls whether we're forcing our device to communicate using bitbang mode. """
+        self._force_jtag_bitbang = force_enable
 
 
 class ApolloSVFEventHandler(SVFEventHandler):

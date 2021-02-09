@@ -12,6 +12,7 @@ from enum import IntEnum
 from collections import defaultdict
 
 from .jtag import JTAGChain
+from .spi import DebugSPIConnection
 from .support.bits import bits
 
 
@@ -734,3 +735,56 @@ class ECP5_JTAGProgrammer(ECP5CommandBasedProgrammer):
             return bytes(response)
         else:
             return b""
+
+
+
+class ECP5_JTAGDebugSPIConnection(DebugSPIConnection):
+    """ JTAG-based soft-SPI connection for ECP5 boards. """
+
+    OPCODE_ER1 = 0x32
+    OPCODE_ER2 = 0x38
+
+    def __init__(self, jtag_chain, debugger, opcode=OPCODE_ER1):
+
+        # Store our JTAG-specific parameters...
+        self._opcode = opcode
+        self._chain = jtag_chain
+
+        # ... and otherwise, initialize normally.
+        super().__init__(debugger)
+
+
+    def transfer(self, data_to_send, invert_cs=False):
+        """ Transfers a set of data over SPI, and reads the response.
+
+        Parameters:
+            data_to_send -- The data to be sent; also sets the length of received data.
+                            with a single CS line.
+        """
+
+        with self._chain as jtag:
+
+            # Quick helper function to reverse bits in our response.
+            def reverse_bits(num):
+                binstr = "{:08b}".format(num)
+                return int(binstr[::-1], 2)
+
+            # Place the ECP5 into scan-through mode.
+            jtag.shift_instruction(self._opcode, state_after='IRPAUSE', length=8)
+
+            # Our JTAG protocol is bit-oriented; while our SPI is byte-oriented. In order to
+            # abuse our JTAG transmission as SPI, we'll reverse the entire bit-stream (which places it
+            # in an order such that the first byte is sent first); and then bit-reverse each byte (which
+            # puts things in an MSB-first order, like SPI likes).
+            byte_reversed_data = bytes(data_to_send)[::-1]
+            jtag_ready_data    = bytes(reverse_bits(b) for b in byte_reversed_data)
+            bits_to_send       = len(jtag_ready_data) * 8
+
+            # Issue the command, and capture any data send in response.
+            jtag.force_bitbang_mode(True)
+            response = self._chain.shift_data(tdi=jtag_ready_data, length=bits_to_send, state_after='DRPAUSE')
+            jtag.force_bitbang_mode(False)
+
+            # Bit-reverse the data we capture in response, compensating for MSB-first ordering.
+            response = [reverse_bits(b) for b in bytes(response)]
+            return bytes(response)

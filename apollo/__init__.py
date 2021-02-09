@@ -9,7 +9,7 @@ import usb.core
 from .jtag  import JTAGChain
 from .spi   import DebugSPIConnection
 from .ila   import ApolloILAFrontend
-from .ecp5  import ECP5_JTAGProgrammer
+from .ecp5  import ECP5_JTAGProgrammer, ECP5_JTAGDebugSPIConnection
 from .intel import IntelJTAGProgrammer
 
 from .onboard_jtag import *
@@ -78,9 +78,15 @@ class ApolloDebugger:
         self.device = device
         self.major, self.minor = self.get_hardware_revision()
 
-        # Create our basic interfaces, for debugging convenience.
+        # Create a basic JTAG chain interface, for debugging convenience.
         self.jtag  = JTAGChain(self)
-        self.spi   = DebugSPIConnection(self)
+
+        # Try to create an SPI-over-JTAG tunnel, if this board supports it.
+        self.spi   = self.create_jtag_spi(self.jtag)
+
+        # If it doesn't, use a hard SPI for JTAG-SPI.
+        if self.spi is None:
+            self.spi   = DebugSPIConnection(self)
 
 
     def detect_connected_version(self):
@@ -161,17 +167,37 @@ class ApolloDebugger:
 
         return 'LUNA'
 
+
     def create_jtag_programmer(self, jtag_chain):
         """ Returns the JTAG programmer for the given device. """
 
         # If this is an external programmer, return its programmer type.
         if self.major == self.EXTERNAL_BOARD_MAJOR:
             programmer = self.EXTERNAL_BOARD_PROGRAMMERS[self.minor]
+
         # Otherwise, it should be an ECP5.
         else:
             programmer = ECP5_JTAGProgrammer
 
         return programmer(jtag_chain)
+
+
+
+    def create_jtag_spi(self, jtag_chain):
+        """ Returns a JTAG-over-SPI connection for the given device. """
+
+        # If this is an external programmer, we don't yet know how to create a JTAG-SPI 
+        # interface for it. For now, assume we can't.
+        if self.major == self.EXTERNAL_BOARD_MAJOR:
+            return None
+
+        # Otherwise, if we have a revision greater than r0.2, our SPI should be via JTAG.
+        elif self.minor >= 0.3:
+            return ECP5_JTAGDebugSPIConnection(jtag_chain, self)
+
+        # Otherwise, we'll want to use a real debug SPI, rather than a JTAG-SPI.
+        else:
+            return None
 
 
 

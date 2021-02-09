@@ -6,6 +6,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import print_function
+from operator import invert
 
 import os
 import sys
@@ -29,6 +30,8 @@ svf        -- Plays a given SVF file over JTAG.
 spi        -- Sends the given list of bytes over debug-SPI, and returns the response.
 spi-inv    -- Sends the given list of bytes over SPI with inverted CS.
 spi-reg    -- Reads or writes to a provided register over the debug-SPI.
+jtag-spi   -- Sends the given list of bytes over SPI-over-JTAG, and returns the response.
+jtag-reg   -- Reads or writes to a provided register of JTAG-tunneled debug SPI.
 """
 
 
@@ -97,7 +100,8 @@ def reconfigure_ecp5(device, args):
     device.soft_reset()
 
 
-def debug_spi(device, args, *, invert_cs=False):
+
+def _do_debug_spi(device, spi, args, *, invert_cs):
 
     # Try to figure out what data the user wants to send.
     data_raw = ast.literal_eval(args.argument)
@@ -105,9 +109,21 @@ def debug_spi(device, args, *, invert_cs=False):
         data_raw = [data_raw]
 
     data_to_send = bytes(data_raw)
-    response     = device.spi.transfer(data_to_send, invert_cs=invert_cs)
+    response     = spi.transfer(data_to_send, invert_cs=invert_cs)
 
     print("response: {}".format(response))
+
+
+def debug_spi(device, args, *, invert_cs=False):
+    _do_debug_spi(device, device.spi, args, invert_cs=invert_cs)
+
+
+def jtag_debug_spi(device, args):
+    """ Command that issues data over a JTAG-over-SPI connection. """
+
+    with device.jtag as jtag:
+        spi = device.create_jtag_spi(jtag)
+        _do_debug_spi(device, spi, args, invert_cs=False)
 
 
 def set_led_pattern(device, args):
@@ -117,7 +133,7 @@ def debug_spi_inv(device, args):
     debug_spi(device, args, invert_cs=True)
 
 
-def debug_spi_register(device, args):
+def _do_debug_spi_register(device, spi, args):
 
     # Try to figure out what data the user wants to send.
     address = int(args.argument, 0)
@@ -129,10 +145,19 @@ def debug_spi_register(device, args):
         is_write = False
 
     try:
-        response = device.spi.register_transaction(address, is_write=is_write, value=value)
+        response = spi.register_transaction(address, is_write=is_write, value=value)
         print("0x{:08x}".format(response))
     except IOError as e:
         logging.critical(f"{e}\n")
+
+
+def debug_spi_register(device, args):
+    _do_debug_spi_register(device, device.spi, args)
+
+def jtag_debug_spi_register(device, args):
+    with device.jtag as jtag:
+        spi = device.create_jtag_spi(jtag)
+        _do_debug_spi_register(device, spi, args)
 
 
 def main():
@@ -151,6 +176,10 @@ def main():
         'spi':         debug_spi,
         'spi-inv':     debug_spi_inv,
         'spi-reg':     debug_spi_register,
+
+        # JTAG-SPI debug exchanges.
+        'jtag-spi':    jtag_debug_spi,
+        'jtag-reg':    jtag_debug_spi_register,
 
         # Misc
         'leds':        set_led_pattern,
