@@ -738,6 +738,127 @@ class ECP5_JTAGProgrammer(ECP5CommandBasedProgrammer):
 
 
 
+
+
+
+class ECP5_JTAGRegisters:
+    """ JTAG-based connection for working with registers. """
+
+    OPCODE_INSTRUCTION = 0x32
+    OPCODE_DATA        = 0x38
+
+    MAX_REGISTER_WIDTH = 128
+
+    def __init__(self, jtag_chain):
+
+        # Store our JTAG-specific parameters...
+        self._chain = jtag_chain
+
+        # Start off with no knowledge of our registers.
+        self._instruction_width = None
+        self._data_width        = None
+
+
+    def _autodetect_width_for(self, opcode, chain):
+
+        # Instruct the ECP5 to target the relevant register...
+        chain.shift_instruction(opcode, state_after='IRPAUSE', length=8)
+
+        # ... and shift out a long string of data.
+        response = chain.shift_data(length=128, state_after='DRPAUSE').reversed()
+
+        # Our registers start off filled with all 1's, in order to allow width detection.
+        # We'll count how many 1's we see.
+        for index, value in enumerate(response):
+            if not value:
+                return index
+
+        # If we didn't see any -zeroes-, return 0, as this makes no sense to us.
+        return 0
+
+    def _autodetect_widths(self, chain):
+        """ Attempts to automatically detect the instruction and data register widths. """
+
+        # Ensure our JTAG chain is in a known state...
+        self._chain.move_to_state('RESET')
+
+        # And autodetect each of our widths.
+        # Note that it's important to read our data width first, as scanning an instruction causes
+        # the data register to be latched, losing our width.
+        self._data_width = self._autodetect_width_for(self.OPCODE_DATA, chain)
+        self._instruction_width = self._autodetect_width_for(self.OPCODE_INSTRUCTION, chain)
+
+        # Sanity check our command-shape detection.
+        invalid_shape = \
+            (self._instruction_width      == 0) or \
+            (self._data_width             == 0) or \
+            (self._instruction_width % 8  != 0) or \
+            (self._data_width % 8         != 0)
+
+        if invalid_shape:
+            raise IOError("Failed to autonegotiate meta-JTAG address/register size.")
+
+
+    def _shift_with_opcode(self, chain, opcode, **arguments):
+
+        # Instruct the ECP5 to target the register associated with our opcode...
+        chain.shift_instruction(opcode, state_after='IRPAUSE', length=8)
+
+        # ... and then shift out our data.
+        result = chain.shift_data(**arguments, state_after='DRPAUSE')
+
+        # Move to runtest for a bit to allow the target to process.
+        chain.run_test(32)
+
+        return result
+
+
+    def _shift_instruction(self, chain, value):
+        """ Shifts data into our instruction register via meta-JTAG. """
+        return self._shift_with_opcode(chain, self.OPCODE_INSTRUCTION, tdi=value, length=self._instruction_width)
+
+
+    def _shift_data(self, chain, value):
+        """ Shifts data into our data register via meta-JTAG. """
+        return self._shift_with_opcode(chain, self.OPCODE_DATA, tdi=value, length=self._data_width)
+
+
+    def register_transaction(self, address, *, is_write, value=0):
+        """ Performs an register transaction. """
+
+        with self._chain as jtag:
+            if (self._instruction_width is None) or (self._data_width is None):
+                self._autodetect_widths(jtag)
+
+            # Compute our write flag.
+            write_flag_position = self._instruction_width - 1
+            write_flag          = (1 << write_flag_position) if is_write else 0
+
+            # Compute our command and value words.
+            command = bits(value=write_flag | address, length=self._instruction_width, byteorder='big')
+            value   = bits(value=value, length=self._data_width, byteorder='big')
+
+
+            # Write our command into the instruction register...
+            self._shift_instruction(jtag, command)
+
+            # ... and shift our data.
+            raw_result = self._shift_data(jtag, value)
+            result = int(raw_result)
+
+            return result
+
+
+    def register_read(self, address):
+        """ Reads a value from the provided registers."""
+        return self.register_transaction(address, is_write=False)
+
+    def register_write(self, address, value):
+        """ Writes a value to the provided register. """
+        return self.register_transaction(address, value=value, is_write=True)
+
+
+
 class ECP5_JTAGDebugSPIConnection(DebugSPIConnection):
     """ JTAG-based soft-SPI connection for ECP5 boards. """
 

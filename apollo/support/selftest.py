@@ -42,7 +42,7 @@ class ApolloSelfTestCase:
     def assertRegisterValue(self, number: int, expected_value: int):
         """ Asserts that a DUT register has a given value. """
 
-        actual_value = self.dut.spi.register_read(number)
+        actual_value = self.dut.registers.register_read(number)
 
         if actual_value != expected_value:
             raise AssertionError(f"register {number} was {actual_value}, not expected {expected_value}")
@@ -87,8 +87,10 @@ class ApolloSelfTestCase:
         sys.stdout.flush()
         sys.stderr.flush()
 
-        pprint(HTML("\n\n<b><u>Automated tests:</u></b>"))
-        for name, member in inspect.getmembers(self):
-            if inspect.ismethod(member) and name.startswith('test_'):
-                self._run_as_test_case(member, self.dut)
+        with dut.jtag as jtag:
+
+            pprint(HTML("\n\n<b><u>Automated tests:</u></b>"))
+            for name, member in inspect.getmembers(self):
+                if inspect.ismethod(member) and name.startswith('test_'):
+                    self._run_as_test_case(member, self.dut)
 

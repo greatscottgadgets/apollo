@@ -122,7 +122,7 @@ def jtag_debug_spi(device, args):
     """ Command that issues data over a JTAG-over-SPI connection. """
 
     with device.jtag as jtag:
-        spi = device.create_jtag_spi(jtag)
+        spi, _ = device.create_jtag_spi(jtag)
         _do_debug_spi(device, spi, args, invert_cs=False)
 
 
@@ -155,9 +155,8 @@ def debug_spi_register(device, args):
     _do_debug_spi_register(device, device.spi, args)
 
 def jtag_debug_spi_register(device, args):
-    with device.jtag as jtag:
-        spi = device.create_jtag_spi(jtag)
-        _do_debug_spi_register(device, spi, args)
+    _reg, reg = device.create_jtag_spi(device.jtag)
+    _do_debug_spi_register(device, reg, args)
 
 
 def main():

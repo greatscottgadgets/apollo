@@ -4,6 +4,7 @@
 # Copyright (c) 2020 Great Scott Gadgets <info@greatscottgadgets.com>
 # SPDX-License-Identifier: BSD-3-Clause
 
+from re import A
 import sys
 import logging
 
@@ -142,6 +143,10 @@ class JTAGChain:
             max_frequency -- the maximum frequency we should attempt scan out data with
         """
 
+        # Store how many times the JTAG chain is being used; this allows us to open it
+        # multiple times without re-init.
+        self._reference_count = 0
+
         # Grab our JTAG API object.
         self.debugger = debugger
 
@@ -149,7 +154,7 @@ class JTAGChain:
         self.frequency = int(max_frequency)
 
         # Default to 2048 bits per scan.
-        # This will be overridden in many cases by the autodetectin methods below.
+        # This will be overridden in many cases by the autodetection methods below.
         self.max_bits_per_scan = 256 * 8
 
         # By default, don't assume any quirks.
@@ -167,6 +172,13 @@ class JTAGChain:
 
     def __enter__(self):
         """ Starts a new JTAG communication. """
+
+        self._reference_count += 1
+
+        # If our JTAG chain was already in use, we don't need to initialize it.
+        # Vacuously succeed.
+        if self._reference_count > 1:
+            return self
 
         # First, get our vitals on the JTAG connection...
         try:
@@ -194,7 +206,14 @@ class JTAGChain:
 
     def __exit__(self, item_type, value, tb):
         """ Terminates an active JTAG communication. """
-        self.debugger.out_request(REQUEST_JTAG_STOP)
+
+        # Free up our use of this hardware.
+        if self._reference_count:
+            self._reference_count -= 1
+
+            # If the hardware is now no longer used, stop performing JTAG.
+            if self._reference_count == 0:
+                self.debugger.out_request(REQUEST_JTAG_STOP)
 
 
     def set_frequency(self, max_frequency):

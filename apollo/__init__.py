@@ -9,7 +9,7 @@ import usb.core
 from .jtag  import JTAGChain
 from .spi   import DebugSPIConnection
 from .ila   import ApolloILAFrontend
-from .ecp5  import ECP5_JTAGProgrammer, ECP5_JTAGDebugSPIConnection
+from .ecp5  import ECP5_JTAGProgrammer, ECP5_JTAGDebugSPIConnection, ECP5_JTAGRegisters
 from .intel import IntelJTAGProgrammer
 
 from .onboard_jtag import *
@@ -82,11 +82,13 @@ class ApolloDebugger:
         self.jtag  = JTAGChain(self)
 
         # Try to create an SPI-over-JTAG tunnel, if this board supports it.
-        self.spi   = self.create_jtag_spi(self.jtag)
+        self.spi, self.registers = self.create_jtag_spi(self.jtag)
 
         # If it doesn't, use a hard SPI for JTAG-SPI.
         if self.spi is None:
             self.spi   = DebugSPIConnection(self)
+            self.registers = self.spi
+
 
 
     def detect_connected_version(self):
@@ -189,15 +191,15 @@ class ApolloDebugger:
         # If this is an external programmer, we don't yet know how to create a JTAG-SPI 
         # interface for it. For now, assume we can't.
         if self.major == self.EXTERNAL_BOARD_MAJOR:
-            return None
+            return None, None
 
         # Otherwise, if we have a revision greater than r0.2, our SPI should be via JTAG.
         elif self.minor >= 0.3:
-            return ECP5_JTAGDebugSPIConnection(jtag_chain, self)
+            return ECP5_JTAGDebugSPIConnection(jtag_chain, self), ECP5_JTAGRegisters(jtag_chain)
 
         # Otherwise, we'll want to use a real debug SPI, rather than a JTAG-SPI.
         else:
-            return None
+            return None, None
 
 
 
