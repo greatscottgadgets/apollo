@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "apollo-fpga"
-version = "0.0.1"
+version = "0.0.2"
 description = "host tools for Apollo FPGA debug controllers"
 authors = ["Katherine Temkin <k@ktemkin.com>"]
 license = "BSD"
@@ -8,7 +8,7 @@ license = "BSD"
 [tool.poetry.dependencies]
 python = "^3.7"
 pyusb = "^1.1.1"
-pyvcd = "^0.2.4"
+pyvcd = "~=0.1.7"
 
 [tool.poetry.dev-dependencies]
 
