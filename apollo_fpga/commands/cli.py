@@ -16,10 +16,10 @@ import errno
 import logging
 import argparse
 
-from apollo import ApolloDebugger
-from apollo.jtag import JTAGChain, JTAGPatternError
-from apollo.ecp5 import ECP5_JTAGProgrammer
-from apollo.onboard_jtag import *
+from apollo_fpga import ApolloDebugger
+from apollo_fpga.jtag import JTAGChain, JTAGPatternError
+from apollo_fpga.ecp5 import ECP5_JTAGProgrammer
+from apollo_fpga.onboard_jtag import *
 
 
 COMMAND_HELP_TEXT = \

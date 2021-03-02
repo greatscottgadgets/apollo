@@ -154,3 +154,5 @@ resources.h
 
 # tinyusb build paths
 _build
+
+firmware/lib

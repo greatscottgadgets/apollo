@@ -106,8 +106,8 @@ void uart_init(bool configure_pinmux, unsigned long baudrate)
 
 	// Configure our baud divisor.
 	// From Atmel:
-	const uint32_t div_factor = CONF_CPU_FREQUENCY / 65536UL;
-	const uint32_t baud = (CONF_CPU_FREQUENCY - 16 * baudrate) / div_factor;
+	const uint64_t div_factor = CONF_CPU_FREQUENCY / 65536UL;
+	const uint64_t baud = (CONF_CPU_FREQUENCY - 16 * baudrate) / div_factor;
 	sercom->USART.BAUD.reg = baud;
 
 	// Configure TX/RX and framing.

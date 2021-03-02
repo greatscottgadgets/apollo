@@ -19,7 +19,7 @@ if os.environ.get('READTHEDOCS') == 'True':
 setup(
 
     # Vitals
-    name='apollo',
+    name='apollo-fpga',
     license='BSD',
     url='https://github.com/greatscottgadgets/apollo',
     author='Katherine J. Temkin',
@@ -42,7 +42,7 @@ setup(
     setup_requires=['setuptools', 'setuptools_scm'],
     entry_points= {
         'console_scripts': [
-            'apollo = apollo.commands.cli:main',
+            'apollo = apollo_fpga.commands.cli:main',
         ],
     },
 
