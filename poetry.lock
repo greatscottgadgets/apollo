@@ -8,27 +8,16 @@ python-versions = "*"
 
 [[package]]
 name = "pyvcd"
-version = "0.1.7"
-description = "Python VCD file support."
+version = "0.2.4"
+description = "Python VCD file support"
 category = "main"
 optional = false
-python-versions = "*"
-
-[package.dependencies]
-six = "*"
-
-[[package]]
-name = "six"
-version = "1.15.0"
-description = "Python 2 and 3 compatibility utilities"
-category = "main"
-optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*"
+python-versions = ">=3.6"
 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "a16f3ec6c32289d800bb563727bf41a3f928ec59fb498d5226f617dbaf755a77"
+content-hash = "8112dcfc5fac0ae7fe9025e45dae41cd102bcdaa8f5325e3cdbecd954178aec2"
 
 [metadata.files]
 pyusb = [
@@ -36,10 +25,6 @@ pyusb = [
     {file = "pyusb-1.1.1.tar.gz", hash = "sha256:7d449ad916ce58aff60b89aae0b65ac130f289c24d6a5b7b317742eccffafc38"},
 ]
 pyvcd = [
-    {file = "pyvcd-0.1.7-py2.py3-none-any.whl", hash = "sha256:69a1f371c5fc7304a5415284517283de5a732da1c7b10988a5a5fe02500e55e6"},
-    {file = "pyvcd-0.1.7.tar.gz", hash = "sha256:be8071c25abbc7fe9e743680b82b6d8979067eca09268d6040baa988016db7c7"},
-]
-six = [
-    {file = "six-1.15.0-py2.py3-none-any.whl", hash = "sha256:8b74bedcbbbaca38ff6d7491d76f2b06b3592611af620f8426e82dddb04a5ced"},
-    {file = "six-1.15.0.tar.gz", hash = "sha256:30639c035cdb23534cd4aa2dd52c3bf48f06e5f4a941509c8bafd8ce11080259"},
+    {file = "pyvcd-0.2.4-py2.py3-none-any.whl", hash = "sha256:c40b0e586a74cddaf82e6989f0168ae7f9b4f182a9a106a0da9df0d11a9c6b3b"},
+    {file = "pyvcd-0.2.4.tar.gz", hash = "sha256:071e51a8362908ad5a2a12f078185639b98b20b653a56f01679de169d0fa425d"},
 ]

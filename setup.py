@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 # Provide our default install requirements.
 install_requirements = [
     'pyusb',
-    'pyvcd~=0.1.7',
+    'pyvcd',
 ]
 
 # On ReadTheDocs don't enforce requirements; we'll use requirements.txt
