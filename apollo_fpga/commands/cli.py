@@ -16,7 +16,7 @@ import errno
 import logging
 import argparse
 
-from apollo_fpga import ApolloDebugger
+from apollo_fpga import ApolloDebugger, DebuggerNotFound
 from apollo_fpga.jtag import JTAGChain, JTAGPatternError
 from apollo_fpga.ecp5 import ECP5_JTAGProgrammer
 from apollo_fpga.onboard_jtag import *
@@ -196,7 +196,12 @@ def main():
                         help='the value to a register write command')
 
     args = parser.parse_args()
-    device = ApolloDebugger()
+
+    # create the debugger
+    try:
+        device = ApolloDebugger()
+    except DebuggerNotFound:
+        raise IOError("Could not detect a connected board. Check your wiring?")
 
     # Set up python's logging to act as a simple print, for now.
     logging.basicConfig(level=logging.INFO, format="%(message)-s")
