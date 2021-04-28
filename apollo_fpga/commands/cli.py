@@ -24,7 +24,6 @@ from apollo_fpga.onboard_jtag import *
 
 COMMAND_HELP_TEXT = \
 """configure  -- Uploads a bitstream to the device's FPGA over JTAG.
-program    -- Programs the target bitstream onto the attached FPGA.
 jtag-scan  -- Prints information about devices on the onboard JTAG chain.
 svf        -- Plays a given SVF file over JTAG.
 spi        -- Sends the given list of bytes over debug-SPI, and returns the response.
