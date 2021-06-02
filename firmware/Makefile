@@ -14,7 +14,7 @@ ifeq ($(APOLLO_BOARD), luna)
 
 	# These should default to the latest revision; but can be set on the command line.
 	BOARD_REVISION_MAJOR ?= 0
-	BOARD_REVISION_MINOR ?= 3
+	BOARD_REVISION_MINOR ?= 4
 
 	# On r0.1 or r0.2 boards, we want to target the SAMD21 / luna_d11 configuration.
 	ifeq ($(BOARD_REVISION_MAJOR), 0)
