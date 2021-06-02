@@ -24,15 +24,68 @@ from apollo_fpga.onboard_jtag import *
 
 COMMAND_HELP_TEXT = \
 """configure  -- Uploads a bitstream to the device's FPGA over JTAG.
-program    -- Programs the target bitstream onto the attached FPGA.
-jtag-scan  -- Prints information about devices on the onboard JTAG chain.
-svf        -- Plays a given SVF file over JTAG.
-spi        -- Sends the given list of bytes over debug-SPI, and returns the response.
-spi-inv    -- Sends the given list of bytes over SPI with inverted CS.
-spi-reg    -- Reads or writes to a provided register over the debug-SPI.
-jtag-spi   -- Sends the given list of bytes over SPI-over-JTAG, and returns the response.
-jtag-reg   -- Reads or writes to a provided register of JTAG-tunneled debug SPI.
+program       -- Programs the target bitstream onto the attached FPGA.
+jtag-scan     -- Prints information about devices on the onboard JTAG chain.
+flash-info    -- Prints information about the FPGA's attached configuration flash.
+flash-erase   -- Erases the contents of the FPGA's flash memory.
+flash-program -- Prints information about the FPGA's attached configuration flash.
+svf           -- Plays a given SVF file over JTAG.
+spi           -- Sends the given list of bytes over debug-SPI, and returns the response.
+spi-inv       -- Sends the given list of bytes over SPI with inverted CS.
+spi-reg       -- Reads or writes to a provided register over the debug-SPI.
+jtag-spi      -- Sends the given list of bytes over SPI-over-JTAG, and returns the response.
+jtag-reg      -- Reads or writes to a provided register of JTAG-tunneled debug SPI.
 """
+
+#
+# Common JEDEC manufacturer IDs for SPI flash chips.
+#
+JEDEC_MANUFACTURERS = {
+    0x01: "AMD/Spansion/Cypress",
+    0x04: "Fujitsu",
+    0x1C: "eON",
+    0x1F: "Atmel/Microchip",
+    0x20: "Micron/Numonyx/ST",
+    0x37: "AMIC",
+    0x62: "SANYO",
+    0x89: "Intel",
+    0x8C: "ESMT",
+    0xA1: "Fudan",
+    0xAD: "Hyundai",
+    0xBF: "SST",
+    0xC2: "Micronix",
+    0xC8: "Gigadevice",
+    0xD5: "ISSI",
+    0xEF: "Winbond",
+    0xE0: 'Paragon',
+}
+
+#
+# Common JEDEC device IDs. Prefixed with their manufacturer for easy / unique lookup.
+#
+JEDEC_PARTS = {
+    0xEF3015: "W25X16L",
+    0xEF3014: "W25X80L",
+    0xEF3013: "W25X40L",
+    0xEF3012: "W25X20L",
+    0xEF3011: "W25X10L",
+    0xEF4015: "W25Q16DV",
+    0xEF4016: "W25Q32DV",
+    0xEF4017: "W25Q64DV",
+    0xEF4018: "W25Q128DV",
+    0xC22515: "MX25L1635E",
+    0xC22017: "MX25L6405D",
+    0xC22016: "MX25L3205D",
+    0xC22015: "MX25L1605D",
+    0xC22014: "MX25L8005",
+    0xC22013: "MX25L4005",
+    0xC22010: "MX25L512E",
+    0x204011: "M45PE10",
+    0x202014: "M25P80",
+    0x1f4501: "AT24DF081",
+    0x1C3114: "EN25F80",
+    0xE04014: "PN25F08",
+}
 
 
 def print_device_info(device, args):
@@ -83,9 +136,7 @@ def play_svf_file(device, args):
 def configure_fpga(device, args):
     """ Command that prints information about devices connected to the scan chain to the console. """
 
-
     with device.jtag as jtag:
-
         programmer = device.create_jtag_programmer(jtag)
 
         with open(args.argument, "rb") as f:
@@ -94,9 +145,77 @@ def configure_fpga(device, args):
         programmer.configure(bitstream)
 
 
-def reconfigure_ecp5(device, args):
-    """ Command that requests the attached ECP5 reconfigure itself from its MSPI flash. """
+def ensure_unconfigured(device):
+    with device.jtag as jtag:
+        programmer = device.create_jtag_programmer(jtag)
+        programmer.unconfigure()
 
+
+def erase_flash(device, args):
+    ensure_unconfigured(device)
+
+    with device.jtag as jtag:
+        programmer = device.create_jtag_programmer(jtag)
+        programmer.erase_flash()
+
+
+def program_flash(device, args):
+    with device.jtag as jtag:
+        programmer = device.create_jtag_programmer(jtag)
+
+        with open(args.argument, "rb") as f:
+            bitstream = f.read()
+
+        programmer.flash(bitstream)
+
+    device.soft_reset()
+
+def read_back_flash(device, args):
+
+    # XXX abstract this?
+    length = ast.literal_eval(args.value) if args.value else (4 * 1024 * 1024)
+
+    with device.jtag as jtag:
+        programmer = device.create_jtag_programmer(jtag)
+
+        with open(args.argument, "wb") as f:
+            bitstream = programmer.read_flash(length)
+            f.write(bitstream)
+
+    device.soft_reset()
+
+
+
+def print_flash_info(device, args):
+    """ Command that prints information about the currently connected FPGA's configuration flash. """
+    ensure_unconfigured(device)
+
+    with device.jtag as jtag:
+        programmer = device.create_jtag_programmer(jtag)
+        manufacturer, device = programmer.read_flash_id()
+
+        if manufacturer == 0xFF:
+            logging.info("No flash detected.")
+            return
+
+        logging.info("")
+        logging.info(f"Detected an FPGA-connected SPI configuration flash!")
+
+        try:
+            logging.info(f"\tManufacturer: {JEDEC_MANUFACTURERS[manufacturer]} ({manufacturer:02x})")
+        except KeyError:
+            logging.info(f"\tUnknown manufacturer ({manufacturer:02x}).")
+
+        try:
+            logging.info(f"\tDevice: {JEDEC_PARTS[device]} ({device:06x})")
+        except KeyError:
+            logging.info(f"\tUnknown device ({device:06x}).")
+
+        logging.info("")
+
+
+def reconfigure_fpga(device, args):
+    """ Command that requests the attached ECP5 reconfigure itself from its SPI flash. """
     device.soft_reset()
 
 
@@ -163,25 +282,32 @@ def main():
 
     commands = {
         # Info queries
-        'info':        print_device_info,
-        'jtag-scan':   print_chain_info,
+        'info':          print_device_info,
+        'jtag-scan':     print_chain_info,
+        'flash-info':    print_flash_info,
+
+        # Flash commands
+        'flash-erase':   erase_flash,
+        'flash':         program_flash,
+        'flash-program': program_flash,
+        'flash-read':    read_back_flash,
 
         # JTAG commands
-        'svf':         play_svf_file,
-        'configure':   configure_fpga,
-        'reconfigure': reconfigure_ecp5,
+        'svf':           play_svf_file,
+        'configure':     configure_fpga,
+        'reconfigure':   reconfigure_fpga,
 
         # SPI debug exchanges
-        'spi':         debug_spi,
-        'spi-inv':     debug_spi_inv,
-        'spi-reg':     debug_spi_register,
+        'spi':           debug_spi,
+        'spi-inv':       debug_spi_inv,
+        'spi-reg':       debug_spi_register,
 
         # JTAG-SPI debug exchanges.
-        'jtag-spi':    jtag_debug_spi,
-        'jtag-reg':    jtag_debug_spi_register,
+        'jtag-spi':      jtag_debug_spi,
+        'jtag-reg':      jtag_debug_spi_register,
 
         # Misc
-        'leds':        set_led_pattern,
+        'leds':          set_led_pattern,
 
     }
 
@@ -193,7 +319,7 @@ def main():
     parser.add_argument('argument', metavar="[argument]", nargs='?',
                         help='the argument to the given command; often a filename')
     parser.add_argument('value', metavar="[value]", nargs='?',
-                        help='the value to a register write command')
+                        help='the value to a register write command, or the length for flash read')
 
     args = parser.parse_args()
     device = ApolloDebugger()

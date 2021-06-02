@@ -6,6 +6,8 @@
 
 """ ECP5 configuration code for LUNA. """
 
+from logging import disable
+from re import U
 import time
 
 from enum import IntEnum
@@ -89,6 +91,15 @@ class ECP5Programmer:
     # Length of an ECP5 status register, in bytes.
     STATUS_REGISTER_LENGTH = 4
 
+    # Argument for the ENTER_BACKGROUND_SPI command that seems to be necessary.
+    # Per other tools, this unlocks the interface; so we'll call it that.
+    SPI_UNLOCK_CODE = b"\x68\xFE"
+
+    # Mask that specifies when an SPI flash is busy.
+    SPI_FLASH_BUSY_MASK  = 0b01
+    SPI_FLASH_WRITE_MASK = 0b10
+
+    SPI_FLASH_PAGE_SIZE  = 256
 
     class Opcode(IntEnum):
         """ Enumeration that describes the ECP5 configuration opcodes. """
@@ -146,6 +157,9 @@ class ECP5Programmer:
         # Mark FPGA configuration as complete.
         ISC_PROGRAM_DONE                       = 0x5E
 
+        # Background SPI control (for flashing).
+        LSC_ENTER_BACKGROUND_SPI               = 0x3A
+
         #
         # Opcodes known to Project Trellis, but unused.
         #
@@ -153,6 +167,30 @@ class ECP5Programmer:
         LSC_WRITE_COMP_DIC                     = 0b00000010
         LSC_PROG_SED_CRC                       = 0b10100010
         ISC_PROGRAM_SECURITY                   = 0b11001110
+
+
+    class FlashOpcode(IntEnum):
+        """ Enumeration that describes the opcodes used to work with an ECP5's configuration flash. """
+
+        # Write to the STATUS1 register.
+        WRITE_STATUS1  = 0x01
+
+        # Write a page to flash.
+        WRITE_PAGE     = 0x02
+        READ_PAGE      = 0x03
+
+        # Read status register 1.
+        READ_STATUS1   = 0x05
+
+        # Enable writing to the flash.
+        ENABLE_WRITE   = 0x06
+
+        # Read the chip's JEDEC ID.
+        READ_ID        = 0x90
+        READ_JEDEC_ID  = 0x9F
+
+        # Erase the full flash chip.
+        CHIP_ERASE     = 0xC7
 
 
     def __init__(self, cfg_pins=None, init_pin=None, program_pin=None, done_pin=None, verbose_function=None):
@@ -231,7 +269,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
     """
 
 
-    def _execute_command(self, opcode, data_or_length=0, wait_for_completion=False, check_status=True, never_print=False):
+    def _execute_command(self, opcode, data_or_length=0, wait_for_completion=False, check_status=True, never_print=False, idle_afterwards=False):
         """ Issue an ECP5 configuration command.
 
         Parameters:
@@ -506,6 +544,177 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
 
 
+    def _background_spi_transfer(self, data):
+        """ Performs a background SPI transfer, targeting the configuration flash."""
+        raise NotImplementedError()
+
+
+    def read_flash_id(self):
+        """ Attempts to read the FPGA's configuration flash's ID over JTAG.
+
+        Returns a 2-tuple: (manufacturer ID, full ID).
+        """
+
+        # Take control of the FPGA's configuration SPI lines.
+        self._enter_background_spi()
+
+        # Issue a READ JEDEC ID request.
+        raw_id = self._background_spi_transfer([self.FlashOpcode.READ_JEDEC_ID, 0, 0, 0])
+
+        # Extract the manufacturer and device ID.
+        manufacturer = raw_id[1]
+        full_id      = int.from_bytes(raw_id[1:], byteorder='big')
+
+        return manufacturer, full_id
+
+
+    def _flash_wait_for_completion(self):
+        """ Blocks until the flash has compelted any pending operations. """
+
+        while True:
+            time.sleep(1e-6)
+
+            # Read the flash's status register...
+            flash_status = self._background_spi_transfer([self.FlashOpcode.READ_STATUS1, 0])
+
+            # If we're not busy, break. Otherwise, wait.
+            if (flash_status[1] & self.SPI_FLASH_BUSY_MASK) == 0:
+                break
+
+
+    def _get_flash_status(self):
+        """ Retrieves the FPGA's configuration flash's status register. """
+        _, status = self._background_spi_transfer([self.FlashOpcode.READ_STATUS1, 0])
+        return status
+
+
+    def _enable_writing_to_flash(self):
+        """ Enables writing to the FPGA's configuration flash. """
+
+        self._flash_wait_for_completion()
+
+        # Request that the flash enter write-enabled mode...
+        self._background_spi_transfer([self.FlashOpcode.ENABLE_WRITE])
+
+        if (self._get_flash_status() & self.SPI_FLASH_WRITE_MASK) == 0:
+            raise IOError("Flash did not enter a writeable state!")
+
+
+    def erase_flash(self):
+
+        # Take control of the FPGA's SPI lines.
+        self._enter_background_spi()
+
+        # Enable writing to the flash.
+        self._enable_writing_to_flash()
+
+        # Erase the connected SPI flash.
+        # TODO: support more granular erases?
+        self._background_spi_transfer([self.FlashOpcode.CHIP_ERASE])
+        self._flash_wait_for_completion()
+
+
+
+    def _flash_write_page(self, address, data):
+        """ Programs a single flash page. """
+
+        self._enable_writing_to_flash()
+
+        # Send the write command...
+        address_bytes = address.to_bytes(3, byteorder='big')
+        self._background_spi_transfer([self.FlashOpcode.WRITE_PAGE, *address_bytes, *data])
+
+        # ... and wait for it to complete.
+        self._flash_wait_for_completion()
+
+
+    def _flash_read_page(self, address, size):
+        """ Reads back a single flash page. """
+
+        address_bytes = address.to_bytes(3, byteorder='big')
+        padding = bytes(size)
+
+        # Read the actual page from the flash, and return it.
+        raw_response = self._background_spi_transfer([self.FlashOpcode.READ_PAGE, *address_bytes, *padding])
+        return raw_response[4:]
+
+
+
+    def flash(self, bitstream, erase_first=True, disable_protections=False):
+        """ Writes the relevant bitstream to a flash connected to the ECP5."""
+
+        # Take control of the FPGA's SPI lines.
+        self._enter_background_spi()
+
+        # Validate that we seem to have a flash present.
+        *_, flash_id = self._background_spi_transfer([self.FlashOpcode.READ_ID, 0, 0, 0, 0])
+        if flash_id in (0x00, 0xFF):
+            raise IOError("Flash does not seem correctly connected to the FPGA!")
+
+        # Disable any write protections, if requested.
+        if disable_protections:
+            self._enable_writing_to_flash()
+            self._background_spi_transfer([self.FlashOpcode.WRITE_STATUS1, 0])
+
+        # Prepare for writing by erasing the chip.
+        # TODO: potentially support more granular erases, here?
+        if erase_first:
+            self._enable_writing_to_flash()
+            self._background_spi_transfer([self.FlashOpcode.CHIP_ERASE])
+            self._flash_wait_for_completion()
+
+        #
+        # Finally, program the bitstream itself.
+        #
+        address = 0
+        data_remaining = bytearray(bitstream)
+        while data_remaining:
+
+            # Extract a single page of data to program.
+            chunk = data_remaining[0:self.SPI_FLASH_PAGE_SIZE]
+            del data_remaining[0:self.SPI_FLASH_PAGE_SIZE]
+
+            # Write the relevant page.
+            self._flash_write_page(address, chunk)
+            address += len(chunk)
+
+
+
+    def read_flash(self, length):
+        """ Reads the contents of the attached FPGA's configuration flash. """
+
+        # Take control of the FPGA's SPI lines.
+        self._enter_background_spi()
+
+        # Validate that we seem to have a flash present.
+        *_, flash_id = self._background_spi_transfer([self.FlashOpcode.READ_ID, 0, 0, 0, 0])
+        if flash_id in (0x00, 0xFF):
+            raise IOError("Flash does not seem correctly connected to the FPGA!")
+
+        # Read our data back , one page at a time.
+        data            = bytearray()
+        address         = 0
+        bytes_remaining = length
+
+        while bytes_remaining:
+
+            print(bytes_remaining)
+
+            # Read a single page from the flash...
+            chunk_size = min(self.SPI_FLASH_PAGE_SIZE, bytes_remaining)
+            chunk = self._flash_read_page(address, chunk_size)
+            data.extend(chunk)
+
+            # ... and move to the next one.
+            address         += len(chunk)
+            bytes_remaining -= len(chunk)
+
+        return data
+
+
+
+
+
 class ECP5SlaveSPI(ECP5CommandBasedProgrammer):
     """ Class that enables configuring ECP5 FPGAs via GreatFET boards. """
 
@@ -543,7 +752,7 @@ class ECP5SlaveSPI(ECP5CommandBasedProgrammer):
 
 
 
-    def _execute_command(self, opcode, data_or_length=0, wait_for_completion=False, check_status=True, never_print=False):
+    def _execute_command(self, opcode, data_or_length=0, wait_for_completion=False, check_status=True, never_print=False, idle_afterwards=False):
         """ Issue an ECP5 configuration command.
 
         Parameters:
@@ -689,7 +898,7 @@ class ECP5_JTAGProgrammer(ECP5CommandBasedProgrammer):
         self.chain.run_test(100)
 
 
-    def _execute_command(self, opcode, data_or_length=0, wait_for_completion=False, check_status=True, never_print=False, bits_per_size_unit=8):
+    def _execute_command(self, opcode, data_or_length=0, wait_for_completion=False, check_status=True, never_print=False, bits_per_size_unit=8, idle_afterwards=False):
         """ Issue an ECP5 configuration command.
 
         Parameters:
@@ -730,6 +939,9 @@ class ECP5_JTAGProgrammer(ECP5CommandBasedProgrammer):
             status = self._read_status()
             self._validate_status(status, extra_verbose=True)
 
+        if idle_afterwards:
+            self.chain.run_test(8)
+
         # If this is a receive command, return the response.
         if is_receive:
             return bytes(response)
@@ -737,7 +949,81 @@ class ECP5_JTAGProgrammer(ECP5CommandBasedProgrammer):
             return b""
 
 
+    def unconfigure(self):
 
+        # Restart ECP5 configuration, ensuring that we have exclusive access to the SPI pins.
+        # Ensure we're at the start of the configuration process. This also clears out any
+        # existing bitstream.
+        self._restart_configuration_process()
+
+        # Perform any pre-configuration tasks necessary.
+        self._perform_preconfiguration_tasks()
+
+        # Enable configuration.
+        self._execute_command(self.Opcode.ISC_ENABLE, b"\x00", check_status=False)
+        self.chain.run_test(2)
+
+        self._execute_command(self.Opcode.ISC_ERASE, b"\x01", wait_for_completion=True, check_status=True)
+        self.chain.run_test(2)
+
+        self._execute_command(self.Opcode.ISC_DISABLE)
+
+
+    def _enter_background_spi(self, reset_flash=True):
+        """ Places the FPGA into background SPI mode; for e.g. programming a connected flash. """
+
+        # Issue the "enter background SPI" opcode...
+        response = self.chain.shift_instruction(tdi=self.Opcode.LSC_ENTER_BACKGROUND_SPI, length=8)
+
+        # ... and then issue our "unlock" code, granting us SPI access.
+        response = self.chain.shift_data(tdi=self.SPI_UNLOCK_CODE, length=16)
+
+        # Place ourselves into ID.
+        self.chain.run_test(1)
+
+        if reset_flash:
+            # Send a string of 8 NOP 0xFFs, to ensure that the flash isn't in the middle of
+            # any other command.
+            self._background_spi_transfer([0xFF] * 8)
+
+            self._background_spi_transfer([0x66])
+            self._background_spi_transfer([0x99])
+            time.sleep(0.1)
+
+
+
+    def _background_spi_transfer(self, data, reverse=False):
+        """ Performs a background SPI transfer, targeting the configuration flash."""
+
+        # Our JTAG protocol is bit-oriented; while our SPI is byte-oriented. In order to
+        # abuse our JTAG transmission as SPI, we'll reverse the entire bit-stream (which places it
+        # in an order such that the first byte is sent first); and then bit-reverse each byte (which
+        # puts things in an MSB-first order, like SPI likes).
+        #
+        # As a minor cheat, if we're supposed to be sending reversed -data-, we can skip the reverse
+        # step; since two reversing-s puts things back.
+        need_to_reverse = not reverse
+
+        # If we need to reverse the data, come up with a function to do so.
+        if need_to_reverse:
+            def reverse_bits(num):
+                binstr = "{:08b}".format(num)
+                return int(binstr[::-1], 2)
+
+        # Otherwise, JTAG has us covered; we can just do nothing and let it mince the data for us.
+        else:
+            reverse_bits = lambda n : n
+
+        byte_reversed_data = bytes(data)[::-1]
+        jtag_ready_data    = bytes(reverse_bits(b) for b in byte_reversed_data)
+        bits_to_send       = len(jtag_ready_data) * 8
+
+        # Issue the command, and capture any data send in response.
+        response = self.chain.shift_data(tdi=jtag_ready_data, length=bits_to_send)
+
+        # Bit-reverse the data we capture in response, compensating for MSB-first ordering.
+        response = [reverse_bits(b) for b in bytes(response)]
+        return bytes(response)
 
 
 
