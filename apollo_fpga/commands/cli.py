@@ -219,7 +219,6 @@ def reconfigure_fpga(device, args):
     device.soft_reset()
 
 
-
 def _do_debug_spi(device, spi, args, *, invert_cs):
 
     # Try to figure out what data the user wants to send.

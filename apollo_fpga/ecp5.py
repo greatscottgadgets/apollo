@@ -486,7 +486,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
 
     def trigger_reconfiguration(self):
-        pass
+        self._restart_configuration_process()
 
 
     def _capture_part_id(self):
@@ -678,6 +678,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
             self._flash_write_page(address, chunk)
             address += len(chunk)
 
+        self.trigger_reconfiguration()
 
 
     def read_flash(self, length):
@@ -967,6 +968,12 @@ class ECP5_JTAGProgrammer(ECP5CommandBasedProgrammer):
         self.chain.run_test(2)
 
         self._execute_command(self.Opcode.ISC_DISABLE)
+        self.chain.run_test(2)
+
+
+    def trigger_reconfiguration(self):
+        self._restart_configuration_process()
+        self.chain.run_test(2)
 
 
     def _enter_background_spi(self, reset_flash=True):
