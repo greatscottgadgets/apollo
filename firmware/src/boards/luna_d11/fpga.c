@@ -20,6 +20,8 @@ void fpga_io_init(void)
 	// By default, keep PROGRAM_N from being driven.
 	gpio_set_pin_level(PROGRAM_GPIO, true);
 	gpio_set_pin_direction(PROGRAM_GPIO, GPIO_DIRECTION_IN);
+
+	gpio_set_pin_direction(PIN_PHY_RESET, GPIO_DIRECTION_IN);
 }
 
 

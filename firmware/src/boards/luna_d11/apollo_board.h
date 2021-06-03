@@ -44,7 +44,8 @@ enum {
  * List of pins used for FPGA interfacing.
  */
 enum {
-	PROGRAM_GPIO = PIN_PA08
+	PROGRAM_GPIO  = PIN_PA08,
+	PIN_PHY_RESET = PIN_PA09
 };
 
 
