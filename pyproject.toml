@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "apollo-fpga"
-version = "0.0.3"
+version = "0.0.4"
 description = "host tools for Apollo FPGA debug controllers"
 authors = ["Katherine Temkin <k@ktemkin.com>"]
 license = "BSD"
