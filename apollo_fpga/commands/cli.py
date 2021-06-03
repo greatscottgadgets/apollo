@@ -28,7 +28,7 @@ program       -- Programs the target bitstream onto the attached FPGA.
 jtag-scan     -- Prints information about devices on the onboard JTAG chain.
 flash-info    -- Prints information about the FPGA's attached configuration flash.
 flash-erase   -- Erases the contents of the FPGA's flash memory.
-flash-program -- Prints information about the FPGA's attached configuration flash.
+flash-program -- Programs the target bitstream onto the attached FPGA.
 svf           -- Plays a given SVF file over JTAG.
 spi           -- Sends the given list of bytes over debug-SPI, and returns the response.
 spi-inv       -- Sends the given list of bytes over SPI with inverted CS.
