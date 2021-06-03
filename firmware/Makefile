@@ -74,6 +74,8 @@ SRC_C += $(addprefix $(CURRENT_PATH)/, $(SOURCES))
 # For now, take advantage of the example rules.
 include $(TINYUSB_PATH)/examples/rules.mk
 
+# Reset BUILD to fix clean target
+BUILD := _build
 
 # Flashing using Saturn-V.
 dfu: _build/$(BOARD)/$(BOARD)-firmware.bin
