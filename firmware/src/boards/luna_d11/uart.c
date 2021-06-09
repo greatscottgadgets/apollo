@@ -98,8 +98,8 @@ void uart_init(bool configure_pinmux, unsigned long baudrate)
 	// Configure the SERCOM for UART mode.
 	sercom->USART.CTRLA.reg =
 		SERCOM_USART_CTRLA_DORD            |  // LSB first
-		SERCOM_USART_CTRLA_TXPO(2)         |  // TX on PA08
-		SERCOM_USART_CTRLA_RXPO(3)         |  // RX on PA09
+		SERCOM_USART_CTRLA_TXPO(0)         |  // TX on PA14 (PAD[0])
+		SERCOM_USART_CTRLA_RXPO(3)         |  // RX on PA11 (PAD[3])
 		SERCOM_USART_CTRLA_SAMPR(0)        |  // use 16x oversampling
 		SERCOM_USART_CTRLA_RUNSTDBY        |  // don't autosuspend the clock
 		SERCOM_USART_CTRLA_MODE_USART_INT_CLK; // use internal clock
