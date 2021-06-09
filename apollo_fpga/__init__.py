@@ -36,8 +36,9 @@ class ApolloDebugger:
     # TODO: potentially change this to an OpenMoko VID, like other LUNA boards.
     USB_IDS  = [(0x1d50, 0x615c), (0x16d0, 0x05a5)]
 
-    REQUEST_SET_LED_PATTERN = 0xa1
-    REQUEST_RECONFIGURE     = 0xc0
+    REQUEST_SET_LED_PATTERN    = 0xa1
+    REQUEST_RECONFIGURE        = 0xc0
+    REQUEST_FORCE_FPGA_OFFLINE = 0xc1
 
     LED_PATTERN_IDLE = 500
     LED_PATTERN_UPLOAD = 50
@@ -227,5 +228,13 @@ class ApolloDebugger:
         """ Resets the target (FPGA/etc) connected to the debug controller. """
         try:
             self.out_request(self.REQUEST_RECONFIGURE)
+        except usb.core.USBError:
+            pass
+
+
+    def force_fpga_offline(self):
+        """ Resets the target (FPGA/etc) connected to the debug controller. """
+        try:
+            self.out_request(self.REQUEST_FORCE_FPGA_OFFLINE)
         except usb.core.USBError:
             pass

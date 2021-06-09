@@ -25,6 +25,7 @@ from apollo_fpga.onboard_jtag import *
 COMMAND_HELP_TEXT = \
 """configure  -- Uploads a bitstream to the device's FPGA over JTAG.
 program       -- Programs the target bitstream onto the attached FPGA.
+force-offline -- Forces the board's FPGA offline; useful for recovering a "bricked" JTAG connection.
 jtag-scan     -- Prints information about devices on the onboard JTAG chain.
 flash-info    -- Prints information about the FPGA's attached configuration flash.
 flash-erase   -- Erases the contents of the FPGA's flash memory.
@@ -219,6 +220,14 @@ def reconfigure_fpga(device, args):
     device.soft_reset()
 
 
+def force_fpga_offline(device, args):
+    """ Command that requests the attached ECP5 be held unconfigured. """
+    device.force_fpga_offline()
+    logging.warning("\nWARNING: Forced the FPGA into an unconfigured state!\n")
+    logging.warning("Configuration will not work properly until you run 'apollo reconfigure' or reset the device.")
+    logging.warning("Flashing the FPGA's configuration SPI flash will still work as intended.\n\n")
+
+
 def _do_debug_spi(device, spi, args, *, invert_cs):
 
     # Try to figure out what data the user wants to send.
@@ -295,6 +304,7 @@ def main():
         'svf':           play_svf_file,
         'configure':     configure_fpga,
         'reconfigure':   reconfigure_fpga,
+        'force-offline': force_fpga_offline,
 
         # SPI debug exchanges
         'spi':           debug_spi,

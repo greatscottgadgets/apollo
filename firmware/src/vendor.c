@@ -43,6 +43,7 @@ enum {
 
 	// General programming requests.
 	VENDOR_REQUEST_TRIGGER_RECONFIGURATION = 0xc0,
+	VENDOR_REQUEST_FORCE_FPGA_OFFLINE      = 0xc1,
 
 
 	//
@@ -92,6 +93,16 @@ bool handle_trigger_fpga_reconfiguration(uint8_t rhport, tusb_control_request_t 
 }
 
 
+/**
+ * Request that forces the FPGA offline, preventing bricking.
+ */
+bool handle_force_fpga_offline(uint8_t rhport, tusb_control_request_t const* request)
+{
+	force_fpga_offline();
+	return true;
+}
+
+
 
 /**
  * Primary vendor request handler.
@@ -103,6 +114,8 @@ static bool handle_vendor_request_setup(uint8_t rhport, tusb_control_request_t c
 			return handle_get_id_request(rhport, request);
 		case VENDOR_REQUEST_TRIGGER_RECONFIGURATION:
 			return handle_trigger_fpga_reconfiguration(rhport, request);
+		case VENDOR_REQUEST_FORCE_FPGA_OFFLINE:
+			return handle_force_fpga_offline(rhport, request);
 
 		// JTAG requests
 		case VENDOR_REQUEST_JTAG_CLEAR_OUT_BUFFER:

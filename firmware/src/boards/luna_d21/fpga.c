@@ -52,3 +52,13 @@ void trigger_fpga_reconfiguration(void)
 	gpio_set_pin_level(PIN_PROG, true);
 	gpio_set_pin_direction(PIN_PROG, GPIO_DIRECTION_IN);
 }
+
+
+/**
+ * Requests that we hold the FPGA in an unconfigured state.
+ */
+void force_fpga_offline(void)
+{
+	gpio_set_pin_direction(PIN_PROG, GPIO_DIRECTION_OUT);
+	gpio_set_pin_level(PIN_PROG, false);
+}

@@ -72,3 +72,9 @@ void trigger_fpga_reconfiguration(void)
 {
 	// FIXME: TODO
 }
+
+
+void force_fpga_offline(void)
+{
+	// FIXME: TODO
+}

@@ -584,7 +584,7 @@ class JTAGChain:
             # If our IDCODE is all 1's, and we have no devices, we seem to be stuck at one.
             # Warn the user.
             if idcode == 0xFFFFFFFF and not devices:
-                warn("TDO appears to be stuck at '1'. Check your wiring?")
+                warn("TDO appears to be stuck at '1'. Board I/O may be interfering; try 'apollo force-offline' first.")
 
             # If we've received our null IDCODE, we've finished enumerating the chain.
             # We'll also treat an all-1's IDCODE as a terminator, as this invalid IDCODE occurs

@@ -20,5 +20,9 @@ void fpga_io_init(void);
  */
 void trigger_fpga_reconfiguration(void);
 
+/**
+ * Requests that we force the FPGA to be held in an unconfigured state.
+ */
+void force_fpga_offline(void);
 
 #endif
