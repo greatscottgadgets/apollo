@@ -49,11 +49,13 @@ class ApolloDebugger:
     EXTERNAL_BOARD_MAJOR = 0xFF
     EXTERNAL_BOARD_NAMES = {
         0: "Daisho [rev 31-Oct-2014]",
-        1: "Xil.se Pergola FPGA"
+        1: "Xil.se Pergola FPGA",
+        2: "Adafruit QT Py ATSAMD21E18",
     }
 
     EXTERNAL_BOARD_PROGRAMMERS = {
-        0: IntelJTAGProgrammer
+        0: IntelJTAGProgrammer,
+        2: ECP5_JTAGProgrammer,
     }
 
 
