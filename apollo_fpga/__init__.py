@@ -238,3 +238,8 @@ class ApolloDebugger:
             self.out_request(self.REQUEST_FORCE_FPGA_OFFLINE)
         except usb.core.USBError:
             pass
+
+    def close(self):
+        """ Closes the USB device so it can be reused, possibly by another ApolloDebugger """
+
+        usb.util.dispose_resources(self.device)
