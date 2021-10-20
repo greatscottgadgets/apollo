@@ -659,16 +659,20 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         # Prepare for writing by erasing the chip.
         # TODO: potentially support more granular erases, here?
         if erase_first:
+            print("Erasing")
             self._enable_writing_to_flash()
             self._background_spi_transfer([self.FlashOpcode.CHIP_ERASE])
             self._flash_wait_for_completion()
+            print("Erase done")
 
         #
         # Finally, program the bitstream itself.
         #
+        print("Writing")
         address = 0
         data_remaining = bytearray(bitstream)
         while data_remaining:
+            print(address)
 
             # Extract a single page of data to program.
             chunk = data_remaining[0:self.SPI_FLASH_PAGE_SIZE]
