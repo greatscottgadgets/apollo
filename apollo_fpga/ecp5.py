@@ -685,7 +685,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         self.trigger_reconfiguration()
 
 
-    def read_flash(self, length):
+    def read_flash(self, length, offset=0):
         """ Reads the contents of the attached FPGA's configuration flash. """
 
         # Take control of the FPGA's SPI lines.
@@ -696,9 +696,12 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         if flash_id in (0x00, 0xFF):
             raise IOError("Flash does not seem correctly connected to the FPGA!")
 
+        if offset % self.SPI_FLASH_PAGE_SIZE != 0:
+            raise IOError(f"Read offset {offset} must be a multiple of {self.SPI_FLASH_PAGE_SIZE}")
+
         # Read our data back , one page at a time.
         data            = bytearray()
-        address         = 0
+        address         = offset
         bytes_remaining = length
 
         while bytes_remaining:

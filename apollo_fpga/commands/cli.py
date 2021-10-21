@@ -174,13 +174,20 @@ def program_flash(device, args):
 def read_back_flash(device, args):
 
     # XXX abstract this?
-    length = ast.literal_eval(args.value) if args.value else (4 * 1024 * 1024)
+    length = 4 * 1024 * 1024
+    offset = 0
+    if args.value:
+        v = ast.literal_eval(args.value)
+        if isinstance(v, int):
+            length = v
+        else:
+            length, offset = v
 
     with device.jtag as jtag:
         programmer = device.create_jtag_programmer(jtag)
 
         with open(args.argument, "wb") as f:
-            bitstream = programmer.read_flash(length)
+            bitstream = programmer.read_flash(length, offset)
             f.write(bitstream)
 
     device.soft_reset()
@@ -328,7 +335,9 @@ def main():
     parser.add_argument('argument', metavar="[argument]", nargs='?',
                         help='the argument to the given command; often a filename')
     parser.add_argument('value', metavar="[value]", nargs='?',
-                        help='the value to a register write command, or the length for flash read')
+                        help='the value to a register write command, or the length for flash read.\n'
+                        'value also accepts (length, offset) for read.\n'
+                        )
 
     args = parser.parse_args()
     device = ApolloDebugger()
