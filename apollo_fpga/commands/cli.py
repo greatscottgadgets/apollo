@@ -167,7 +167,11 @@ def program_flash(device, args):
         with open(args.argument, "rb") as f:
             bitstream = f.read()
 
-        programmer.flash(bitstream)
+        offset = 0
+        if args.value:
+            offset = int(args.value, 0)
+
+        programmer.flash(bitstream, offset=offset)
 
     device.soft_reset()
 
@@ -337,6 +341,7 @@ def main():
     parser.add_argument('value', metavar="[value]", nargs='?',
                         help='the value to a register write command, or the length for flash read.\n'
                         'value also accepts (length, offset) for read.\n'
+                        'value is the offset for a flash write. Up to 64kB beyond the data may also be erased.\n'
                         )
 
     args = parser.parse_args()

@@ -192,6 +192,10 @@ class ECP5Programmer:
         # Erase the full flash chip.
         CHIP_ERASE     = 0xC7
 
+        SECTOR_4K_ERASE= 0x20
+        BLOCK_32K_ERASE= 0x52
+        BLOCK_64K_ERASE= 0xD8
+
 
     def __init__(self, cfg_pins=None, init_pin=None, program_pin=None, done_pin=None, verbose_function=None):
         """ Captures the common fields for all ECP5 programmers.
@@ -639,8 +643,42 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         return raw_response[4:]
 
 
+    def _flash_erase(self, address, size):
+        """ Erases size bytes at address. Erasing is done in blocks
+            so up to 64kB beyond the end may be erased.
+            address must be a multiple of the erase size
+        """
 
-    def flash(self, bitstream, erase_first=True, disable_protections=False):
+        # TODO: could use a mix of block sizes
+        # Find largest block size divisor for the address
+        sizes = {
+            4096: self.FlashOpcode.SECTOR_4K_ERASE,
+            32768: self.FlashOpcode.BLOCK_32K_ERASE,
+            65536: self.FlashOpcode.BLOCK_64K_ERASE,
+        }
+        blk = 0
+        for a in sizes:
+            if address % a == 0:
+                blk = a
+
+        if blk:
+            pos = address // blk * blk
+            cmd = sizes[blk]
+            while pos < address + size:
+                print(f"Erasing {blk} bytes at 0x{pos:08x}  ({pos} dec)")
+                address_bytes = pos.to_bytes(3, byteorder='big')
+                self._enable_writing_to_flash()
+                self._background_spi_transfer([cmd, *address_bytes])
+                self._flash_wait_for_completion()
+                pos += blk
+        else:
+            print(f"Erasing chip (offset not a multiple of {list(sizes)})")
+            self._enable_writing_to_flash()
+            self._background_spi_transfer([self.FlashOpcode.CHIP_ERASE])
+            self._flash_wait_for_completion()
+
+
+    def flash(self, bitstream, erase_first=True, disable_protections=False, offset=0):
         """ Writes the relevant bitstream to a flash connected to the ECP5."""
 
         # Take control of the FPGA's SPI lines.
@@ -657,22 +695,18 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
             self._background_spi_transfer([self.FlashOpcode.WRITE_STATUS1, 0])
 
         # Prepare for writing by erasing the chip.
-        # TODO: potentially support more granular erases, here?
         if erase_first:
-            print("Erasing")
-            self._enable_writing_to_flash()
-            self._background_spi_transfer([self.FlashOpcode.CHIP_ERASE])
-            self._flash_wait_for_completion()
+            self._flash_erase(offset, len(bitstream))
             print("Erase done")
 
         #
         # Finally, program the bitstream itself.
         #
         print("Writing")
-        address = 0
+        address = offset
         data_remaining = bytearray(bitstream)
         while data_remaining:
-            print(address)
+            print(f"{address-offset} / {len(bitstream)}  {(address-offset)/len(bitstream)*100:.2f}%  @ 0x{address:08x}")
 
             # Extract a single page of data to program.
             chunk = data_remaining[0:self.SPI_FLASH_PAGE_SIZE]
