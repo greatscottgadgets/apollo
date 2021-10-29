@@ -67,7 +67,7 @@
 
 //------------- CLASS -------------//
 #define CFG_TUD_CDC              1
-#define CFG_TUD_DFU_RT           1
+#define CFG_TUD_DFU_RUNTIME      1
 #define CFG_TUD_VENDOR           1
 
 // CDC FIFO size of TX and RX
