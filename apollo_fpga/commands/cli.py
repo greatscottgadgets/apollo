@@ -161,6 +161,7 @@ def erase_flash(device, args):
 
 
 def program_flash(device, args):
+    ensure_unconfigured(device)
     with device.jtag as jtag:
         programmer = device.create_jtag_programmer(jtag)
 
