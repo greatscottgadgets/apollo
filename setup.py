@@ -22,8 +22,8 @@ setup(
     name='apollo-fpga',
     license='BSD',
     url='https://github.com/greatscottgadgets/apollo',
-    author='Katherine J. Temkin',
-    author_email='ktemkin@greatscottgadgets.com',
+    author='Great Scott Gadgets',
+    author_email='info@greatscottgadgets.com',
     description='host tools for Apollo FPGA debug controllers',
     use_scm_version= {
         "root": '..',

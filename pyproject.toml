@@ -2,7 +2,7 @@
 name = "apollo-fpga"
 version = "0.0.5"
 description = "host tools for Apollo FPGA debug controllers"
-authors = ["Katherine Temkin <k@ktemkin.com>"]
+authors = ["Great Scott Gadgets <info@greatscottgadgets.com>"]
 license = "BSD"
 
 [tool.poetry.dependencies]
