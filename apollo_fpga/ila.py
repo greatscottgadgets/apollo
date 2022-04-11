@@ -6,6 +6,9 @@
 
 """ Apollo-based ILA transports. """
 
+import math
+import sys
+
 from abc           import ABCMeta, abstractmethod
 
 from vcd           import VCDWriter
