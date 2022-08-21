@@ -178,13 +178,17 @@ void jtag_deinit(void)
 }
 
 
-
+static inline void delay(int cycles)
+{
+	while (cycles-- != 0)
+		__NOP();
+}
 
 
 static inline void jtag_pulse_clock(void)
 {
 	gpio_set_pin_level(TCK_GPIO, false);
-	__NOP();
+	delay(10);
 	gpio_set_pin_level(TCK_GPIO, true);
 }
 
@@ -193,7 +197,7 @@ static inline uint8_t jtag_pulse_clock_and_read_tdo(void)
 	uint8_t ret;
 
 	gpio_set_pin_level(TCK_GPIO, false);
-	__NOP();
+	delay(10);
 	ret = jtag_read_tdo();
 	gpio_set_pin_level(TCK_GPIO, true);
 
