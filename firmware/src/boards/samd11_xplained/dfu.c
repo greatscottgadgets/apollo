@@ -15,7 +15,7 @@
 /**
  * Handler for DFU_DETACH events, which should cause us to reboot into the bootloader.
  */
-void tud_dfu_rt_reboot_to_dfu(void)
+void tud_dfu_runtime_reboot_to_dfu_cb(void)
 {
 	// The easiest way to reboot into the bootloader is to trigger the watchdog timer.
 	// We'll just enable the WDT and then deliberately hang; which should cause an immediate reset.

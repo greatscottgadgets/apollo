@@ -53,6 +53,7 @@ endif
 
 CFLAGS += \
 	-Wno-unused-parameter \
+	-Wno-cast-qual \
 	-fstrict-volatile-bitfields \
 	-D_BOARD_REVISION_MAJOR_=$(BOARD_REVISION_MAJOR) \
 	-D_BOARD_REVISION_MINOR_=$(BOARD_REVISION_MINOR) \
