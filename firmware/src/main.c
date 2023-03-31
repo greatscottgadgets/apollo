@@ -37,6 +37,7 @@
 #include "fpga.h"
 #include "console.h"
 #include "debug_spi.h"
+#include "usb_switch.h"
 //#include "selftest.h"
 
 
@@ -52,6 +53,7 @@ int main(void)
 	fpga_io_init();
 	led_init();
 	debug_spi_init();
+	hand_off_usb();
 
 	// Trigger an FPGA reconfiguration; so the FPGA automatically
 	// configures itself from its SPI ROM on reset. This effectively
@@ -62,6 +64,7 @@ int main(void)
 		tud_task(); // tinyusb device task
 		console_task();
 		heartbeat_task();
+		switch_control_task();
 	}
 
 	return 0;
