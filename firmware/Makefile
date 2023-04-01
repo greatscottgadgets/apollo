@@ -79,13 +79,13 @@ include $(TINYUSB_PATH)/examples/rules.mk
 BUILD := _build
 
 # Flashing using Saturn-V.
-dfu: _build/$(BOARD)/$(BOARD)-firmware.bin
+dfu: _build/$(BOARD)/firmware.bin
 	dfu-util -a 0 -d 1d50:615c -D $< || dfu-util -a 0 -d 16d0:05a5 -D $<
 
 
 # Flashing using the Black Magic Probe,
 BMP_SERIAL ?= /dev/ttyACM0
-bmp: _build/$(BOARD)/$(BOARD)-firmware.elf
+bmp: _build/$(BOARD)/firmware.elf
 	arm-none-eabi-gdb -nx --batch \
 	-ex 'target extended-remote $(BMP_SERIAL)' \
 	-ex 'monitor swdp_scan' \
