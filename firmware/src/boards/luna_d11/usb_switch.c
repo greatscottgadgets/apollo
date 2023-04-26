@@ -44,7 +44,8 @@ void take_over_usb(void)
 void switch_control_task(void)
 {
 	gpio_set_pin_direction(PROGRAM_BUTTON, GPIO_DIRECTION_IN);
-	if (gpio_get_pin_level(PROGRAM_BUTTON) == false) {
+	gpio_set_pin_direction(FPGA_INT, GPIO_DIRECTION_IN);
+	if ((gpio_get_pin_level(PROGRAM_BUTTON) == false) || (gpio_get_pin_level(FPGA_INT) == true)) {
 		take_over_usb();
 	}
 }
