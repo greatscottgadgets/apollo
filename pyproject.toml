@@ -9,6 +9,7 @@ license = "BSD"
 python = "^3.7"
 pyusb = "^1.1.1"
 pyvcd = "^0.2.4"
+yowasp_nextpnr_ecp5 = "*"
 
 [tool.poetry.dev-dependencies]
 

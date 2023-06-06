@@ -8,6 +8,7 @@ from setuptools import setup, find_packages
 install_requirements = [
     'pyusb',
     'pyvcd',
+    'yowasp-nextpnr-ecp5',
 ]
 
 # On ReadTheDocs don't enforce requirements; we'll use requirements.txt

@@ -8,10 +8,15 @@
 
 from logging import disable
 from re import U
+from io import BytesIO
 import time
+import os
+import tempfile
 
 from enum import IntEnum
 from collections import defaultdict
+
+from yowasp_nextpnr_ecp5 import run_ecpunpack, run_ecppack
 
 from .jtag import JTAGChain
 from .spi import DebugSPIConnection
@@ -403,6 +408,14 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
                 can be passed to bytearray's constructor is acceptable.
         """
 
+        # Capture the part ID from the device and check it against the bitstream
+        # If there is a mismatch, try to convert the bitstream for the target part ID
+        target_idcode = self.read_id()
+        target_idcode = int.from_bytes(target_idcode.to_bytes(4, 'little'), 'big')
+        bitstream, bs_idcode = ECP5BitstreamUtils.verify_or_convert(bitstream, target_idcode)
+        if bitstream is None:
+            raise RuntimeError(f"Bitstream for idcode {bs_idcode:x} not compatible with {target_idcode:x}")
+
         bitstream = self._generate_bit_reversed_bitstream(bitstream, byte_reverse=True)
 
         self.chain.debugger.set_led_pattern(self.chain.debugger.LED_PATTERN_UPLOAD)
@@ -414,11 +427,6 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
             # Perform any pre-configuration tasks necessary.
             self._perform_preconfiguration_tasks()
-
-            # Capture the part ID, and then verify that our bitstream matches.
-            # FIXME: use the bitstream file to get the ID, not our exected LUNA ID
-            self._capture_part_id()
-            #self._execute_command(self.Opcode.VERIFY_ID, b"\x21\x11\x10\x43")
 
             # ???
             self._execute_command(0x1C, bits(b"\x3f" + b"\xff" * 63, 510), check_status=False, bits_per_size_unit=1)
@@ -642,6 +650,14 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
     def flash(self, bitstream, erase_first=True, disable_protections=False):
         """ Writes the relevant bitstream to a flash connected to the ECP5."""
+
+        # Capture the part ID from the device and check it against the bitstream
+        # If there is a mismatch, try to convert the bitstream for the target part ID
+        target_idcode = self.read_id()
+        target_idcode = int.from_bytes(target_idcode.to_bytes(4, 'little'), 'big')
+        bitstream, bs_idcode = ECP5BitstreamUtils.verify_or_convert(bitstream, target_idcode)
+        if bitstream is None:
+            raise RuntimeError(f"Bitstream for idcode {bs_idcode:x} not compatible with {target_idcode:x}")
 
         # Take control of the FPGA's SPI lines.
         self._enter_background_spi()
@@ -1202,3 +1218,140 @@ class ECP5_JTAGDebugSPIConnection(DebugSPIConnection):
             # Bit-reverse the data we capture in response, compensating for MSB-first ordering.
             response = [reverse_bits(b) for b in bytes(response)]
             return bytes(response)
+
+class ECP5BitstreamUtils:
+    """ Methods for parsing and transforming ECP5 bitstreams. """
+
+    PREAMBLE = b'\xff\xff\xbd\xb3'
+
+    IDCODE_COMPAT = {
+        0x21111043: [0x41111043],
+        0x41111043: [0x21111043],
+    }
+
+    def verify_or_convert(bitstream, target_idcode):
+        """ Checks the bitstream part ID code against the specified part ID code.
+            If they are different, tries to convert the bitstream for that ID code.
+
+        Parameters:
+            bitstream -- A bytes-like object containing the data to be verified 
+                         or transformed.
+            target_idcode -- The part ID specified for verification or conversion.
+        """
+        bs_idcode = ECP5BitstreamUtils.parse_idcode(bitstream)
+        if bs_idcode and target_idcode != bs_idcode:
+            # Convert between idcodes if possible
+            if ECP5BitstreamUtils.compatible(bs_idcode, target_idcode):
+                bitstream = ECP5BitstreamUtils.convert(bitstream, target_idcode)
+            else:
+                bitstream = None
+        return bitstream, bs_idcode
+    
+    def compatible(src_idcode, dst_idcode):
+        if src_idcode == dst_idcode:
+            return True
+        if src_idcode in ECP5BitstreamUtils.IDCODE_COMPAT.get(dst_idcode, []):
+            return True
+        return False
+
+    def parse_idcode(bitstream):
+        """ Returns the idcode of a given bitstream.
+        
+        Parameters:
+            bitstream -- A bytes-like object containing the data to be parsed.
+        """
+        # Wrap in IOBytes
+        bitstream = BytesIO(bitstream)
+        # Parse comments section
+        head = bitstream.read(2)
+        if head != b'\xff\x00':
+            return None
+        comments = []
+        comment = b''
+        while True:
+            b = bitstream.read(1)
+            if b == b'\x00':
+                comments.append(comment)
+                comment = b''
+                continue
+            if b == b'\xff' and comment == b'':
+                break
+            comment += b
+
+        if bitstream.read(4) != ECP5BitstreamUtils.PREAMBLE:
+            return None
+
+        while True:
+            crc = False
+            code = bitstream.read(1)
+            if code == b'':
+                break
+            code = code[0]
+            if code == ECP5Programmer.Opcode.NO_OP:
+                continue
+            elif code == ECP5Programmer.Opcode.LSC_RESET_CRC:
+                bitstream.read(3)
+            elif code == ECP5Programmer.Opcode.VERIFY_ID:
+                bitstream.read(3)
+                return int.from_bytes(bitstream.read(4), 'big')
+            elif code == ECP5Programmer.Opcode.LSC_PROGRAM_CONTROL_REGISTER_0:
+                bitstream.read(3+4)
+            elif code == ECP5Programmer.Opcode.LSC_SET_WORKING_ADDRESS:
+                bitstream.read(3)
+            elif code == ECP5Programmer.Opcode.LSC_WRITE_COMP_DIC:
+                params = bitstream.read(3+8)
+                crc = params[0] & 0x80 != 0
+            elif code == ECP5Programmer.Opcode.ISC_PROGRAM_USERCODE:
+                params = bitstream.read(3+4)
+                crc = params[0] & 0x80 != 0
+            elif code == ECP5Programmer.Opcode.LSC_SET_BLOCK_RAM_ADDRESS:
+                bitstream.read(3+4)
+            elif code == ECP5Programmer.Opcode.LSC_SET_BLOCK_RAM_DATA:
+                params = bitstream.read(3)
+                crc = params[0] & 0x80 != 0
+            elif code == ECP5Programmer.Opcode.ISC_PROGRAM_DONE:
+                params = bitstream.read(3)
+                crc = params[0] & 0x80 != 0
+            elif code == ECP5Programmer.Opcode.LSC_PROGRAM_AND_INCREMENT_COMPRESSED or \
+                code == ECP5Programmer.Opcode.LSC_PROGRAM_AND_INCREMENT_UNCOMPRESSED:
+                return None
+            else:
+                return None
+            if crc:
+                bitstream.read(2)
+
+    def convert(bitstream, target_idcode):
+        """ Convert bitstream for another part ID specified by the target idcode.
+
+        Parameters:
+            bitstream -- A bytes-like object containing the original bitstream 
+                         to be transformed.
+        """
+        # Write current bitstream to temporary file
+        f = tempfile.NamedTemporaryFile(prefix='bitstream_', delete=False)
+        f.write(bitstream)
+        f.close()
+
+        # Unpack bitstream to a config file but overridding the idcode
+        # YoWASP takes the /tmp mountpoint internally, use another path
+        tempdir_path = tempfile.gettempdir()
+        os.environ["YOWASP_MOUNT"] = f"/tmp_bs={tempdir_path}"
+        newname = f.name.replace(tempdir_path, "/tmp_bs")
+        cfgfile = newname + ".cfg"
+        rc = run_ecpunpack(["--input", newname, "--textcfg", cfgfile, 
+                            '--idcode', f'0x{target_idcode:x}'])
+        if rc != 0:
+            return None
+        
+        # Repack bitstream
+        rc = run_ecppack(["--compress", "--freq", "38.8", "--input", cfgfile, 
+                          "--bit", newname])
+        if rc != 0:
+            return None
+        
+        # Read contents and remove temporary file
+        with open(f.name, "rb") as f2:
+            new_bitstream = f2.read()
+        os.unlink(f.name)
+
+        return new_bitstream
