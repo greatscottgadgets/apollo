@@ -594,7 +594,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         self._flash_wait_for_completion()
 
         # Request that the flash enter write-enabled mode...
-        self._background_spi_transfer([self.FlashOpcode.ENABLE_WRITE])
+        self._background_spi_transfer([self.FlashOpcode.ENABLE_WRITE], ignore_response=True)
 
         if (self._get_flash_status() & self.SPI_FLASH_WRITE_MASK) == 0:
             raise IOError("Flash did not enter a writeable state!")
@@ -610,7 +610,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
         # Erase the connected SPI flash.
         # TODO: support more granular erases?
-        self._background_spi_transfer([self.FlashOpcode.CHIP_ERASE])
+        self._background_spi_transfer([self.FlashOpcode.CHIP_ERASE], ignore_response=True)
         self._flash_wait_for_completion()
 
 
@@ -622,7 +622,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
         # Send the write command...
         address_bytes = address.to_bytes(3, byteorder='big')
-        self._background_spi_transfer([self.FlashOpcode.WRITE_PAGE, *address_bytes, *data])
+        self._background_spi_transfer([self.FlashOpcode.WRITE_PAGE, *address_bytes, *data], ignore_response=True)
 
         # ... and wait for it to complete.
         self._flash_wait_for_completion()
@@ -654,13 +654,13 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         # Disable any write protections, if requested.
         if disable_protections:
             self._enable_writing_to_flash()
-            self._background_spi_transfer([self.FlashOpcode.WRITE_STATUS1, 0])
+            self._background_spi_transfer([self.FlashOpcode.WRITE_STATUS1, 0], ignore_response=True)
 
         # Prepare for writing by erasing the chip.
         # TODO: potentially support more granular erases, here?
         if erase_first:
             self._enable_writing_to_flash()
-            self._background_spi_transfer([self.FlashOpcode.CHIP_ERASE])
+            self._background_spi_transfer([self.FlashOpcode.CHIP_ERASE], ignore_response=True)
             self._flash_wait_for_completion()
 
         #
@@ -999,7 +999,7 @@ class ECP5_JTAGProgrammer(ECP5CommandBasedProgrammer):
 
 
 
-    def _background_spi_transfer(self, data, reverse=False):
+    def _background_spi_transfer(self, data, reverse=False, ignore_response=False):
         """ Performs a background SPI transfer, targeting the configuration flash."""
 
         # Our JTAG protocol is bit-oriented; while our SPI is byte-oriented. In order to
@@ -1026,11 +1026,12 @@ class ECP5_JTAGProgrammer(ECP5CommandBasedProgrammer):
         bits_to_send       = len(jtag_ready_data) * 8
 
         # Issue the command, and capture any data send in response.
-        response = self.chain.shift_data(tdi=jtag_ready_data, length=bits_to_send)
+        response = self.chain.shift_data(tdi=jtag_ready_data, length=bits_to_send, ignore_response=ignore_response)
 
         # Bit-reverse the data we capture in response, compensating for MSB-first ordering.
-        response = [reverse_bits(b) for b in bytes(response)]
-        return bytes(response)
+        if response:
+            response = [reverse_bits(b) for b in bytes(response)]
+            return bytes(response)
 
 
 
