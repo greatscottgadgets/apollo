@@ -385,11 +385,6 @@ class JTAGChain:
         state_number = self.STATE_NUMBERS[state]
         self.debugger.out_request(REQUEST_JTAG_GO_TO_STATE, value=state_number)
 
-        # TODO: remove this; this if for debugging only
-        current_state_raw = self.debugger.in_request(REQUEST_JTAG_GET_STATE, length=1)
-        current_state_number = int.from_bytes(current_state_raw, byteorder='little')
-        assert(current_state_number == state_number)
-
 
     def move_to_state(self, state_name):
         """ Moves the JTAG scan chain to the relevant state.
