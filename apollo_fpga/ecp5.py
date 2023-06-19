@@ -189,6 +189,11 @@ class ECP5Programmer:
         READ_ID        = 0x90
         READ_JEDEC_ID  = 0x9F
 
+        # Erase by sectors/blocks
+        ERASE_SEC_4K   = 0x20
+        ERASE_BLK_32K  = 0x52
+        ERASE_BLK_64K  = 0xD8
+
         # Erase the full flash chip.
         CHIP_ERASE     = 0xC7
 
@@ -614,6 +619,29 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         self._flash_wait_for_completion()
 
 
+    def _flash_erase_size(self, size):
+        """ Erases the defined size by sectors / blocks. """
+
+        # Issue sequence of erase calls.
+        address = 0
+        while size > 0:
+            # Rounds size up to a multiple of 4K (min. granularity).
+            if size >= 65536:
+                opcode = self.FlashOpcode.ERASE_BLK_64K
+                chunk  = 65536
+            elif size >= 32768:
+                opcode = self.FlashOpcode.ERASE_BLK_32K
+                chunk  = 32768
+            else:
+                opcode = self.FlashOpcode.ERASE_SEC_4K
+                chunk  = 4096
+            address_bytes = address.to_bytes(3, byteorder='big')
+            self._enable_writing_to_flash()
+            self._background_spi_transfer([opcode, *address_bytes], ignore_response=True)
+            self._flash_wait_for_completion()
+            address += chunk
+            size    -= chunk
+
 
     def _flash_write_page(self, address, data):
         """ Programs a single flash page. """
@@ -657,11 +685,8 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
             self._background_spi_transfer([self.FlashOpcode.WRITE_STATUS1, 0], ignore_response=True)
 
         # Prepare for writing by erasing the chip.
-        # TODO: potentially support more granular erases, here?
         if erase_first:
-            self._enable_writing_to_flash()
-            self._background_spi_transfer([self.FlashOpcode.CHIP_ERASE], ignore_response=True)
-            self._flash_wait_for_completion()
+            self._flash_erase_size(len(bitstream))
 
         #
         # Finally, program the bitstream itself.
