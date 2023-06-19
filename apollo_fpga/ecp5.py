@@ -577,8 +577,6 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         """ Blocks until the flash has compelted any pending operations. """
 
         while True:
-            time.sleep(1e-6)
-
             # Read the flash's status register...
             flash_status = self._background_spi_transfer([self.FlashOpcode.READ_STATUS1, 0])
 
@@ -586,6 +584,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
             if (flash_status[1] & self.SPI_FLASH_BUSY_MASK) == 0:
                 break
 
+            time.sleep(1e-6)
 
     def _get_flash_status(self):
         """ Retrieves the FPGA's configuration flash's status register. """
