@@ -6,7 +6,7 @@
 
 """ ECP5 configuration code for LUNA. """
 
-from logging import disable
+import logging
 from re import U
 import time
 
@@ -16,6 +16,8 @@ from collections import defaultdict
 from .jtag import JTAGChain
 from .spi import DebugSPIConnection
 from .support.bits import bits
+
+from luna.gateware.applets.flash import FlashBridge
 
 
 class ECP5Programmer:
@@ -673,11 +675,25 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
 
 
-    def flash(self, bitstream, erase_first=True, disable_protections=False):
+    def flash(self, bitstream, erase_first=True, disable_protections=False, jtag_spi=False):
         """ Writes the relevant bitstream to a flash connected to the ECP5."""
+        
+        # The default path is to use a gateware bridge for accessing the configuration flash
+        if not jtag_spi:
+            try:
+                # Configure the FPGA and get a connection handler
+                flash_bridge = FlashBridge.configure(self)
 
-        # Take control of the FPGA's SPI lines.
-        self._enter_background_spi()
+                # Reuse the rest of the code by only overriding these methods
+                self._background_spi_transfer = flash_bridge._background_spi_transfer
+                self.trigger_reconfiguration  = flash_bridge.trigger_reconfiguration
+            except:
+                logging.warning("Failed to create configuration flash bridge, fall back to JTAG SPI")
+                jtag_spi = True
+        
+        if jtag_spi:
+            # Take control of the FPGA's SPI lines.
+            self._enter_background_spi()
 
         # Validate that we seem to have a flash present.
         *_, flash_id = self._background_spi_transfer([self.FlashOpcode.READ_ID, 0, 0, 0, 0])
