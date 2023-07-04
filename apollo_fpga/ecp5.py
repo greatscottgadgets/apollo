@@ -189,13 +189,13 @@ class ECP5Programmer:
         READ_ID        = 0x90
         READ_JEDEC_ID  = 0x9F
 
+        # Erase the full flash chip.
+        CHIP_ERASE     = 0xC7
+
         # Erase by sectors/blocks
         ERASE_SEC_4K   = 0x20
         ERASE_BLK_32K  = 0x52
         ERASE_BLK_64K  = 0xD8
-
-        # Erase the full flash chip.
-        CHIP_ERASE     = 0xC7
 
 
     def __init__(self, cfg_pins=None, init_pin=None, program_pin=None, done_pin=None, verbose_function=None):
@@ -618,28 +618,34 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         self._flash_wait_for_completion()
 
 
-    def _flash_erase_size(self, size):
-        """ Erases the defined size by sectors / blocks. """
+    def _flash_erase_size(self, address, size):
+        """ Erases from the defined address and size with sector / block operations.
+
+        Both arguments are rounded to multiples of 4K (min. granularity).
+        """
+
+        opcode_table = {
+            65536: self.FlashOpcode.ERASE_BLK_64K,
+            32768: self.FlashOpcode.ERASE_BLK_32K,
+            4096:  self.FlashOpcode.ERASE_SEC_4K,
+        }
+
+        # Find address aligned to 4K boundaries
+        align    = address % 4096
+        address -= align
+        size    += align
 
         # Issue sequence of erase calls.
-        address = 0
         while size > 0:
-            # Rounds size up to a multiple of 4K (min. granularity).
-            if size >= 65536:
-                opcode = self.FlashOpcode.ERASE_BLK_64K
-                chunk  = 65536
-            elif size >= 32768:
-                opcode = self.FlashOpcode.ERASE_BLK_32K
-                chunk  = 32768
-            else:
-                opcode = self.FlashOpcode.ERASE_SEC_4K
-                chunk  = 4096
+            for chunk_sz, opcode in opcode_table.items():
+                if size >= chunk_sz and address % chunk_sz == 0:
+                    break
             address_bytes = address.to_bytes(3, byteorder='big')
             self._enable_writing_to_flash()
             self._background_spi_transfer([opcode, *address_bytes], ignore_response=True)
             self._flash_wait_for_completion()
-            address += chunk
-            size    -= chunk
+            address += chunk_sz
+            size    -= chunk_sz
 
 
     def _flash_write_page(self, address, data):
@@ -685,7 +691,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
         # Prepare for writing by erasing the chip.
         if erase_first:
-            self._flash_erase_size(len(bitstream))
+            self._flash_erase_size(0, len(bitstream))
 
         #
         # Finally, program the bitstream itself.
