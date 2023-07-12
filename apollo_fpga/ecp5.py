@@ -17,8 +17,6 @@ from .jtag import JTAGChain
 from .spi import DebugSPIConnection
 from .support.bits import bits
 
-from luna.gateware.applets.flash import FlashBridge
-
 
 class ECP5Programmer:
     """ Abstract base class for programming ECP5 FPGAs. """
@@ -681,6 +679,8 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         # The default path is to use a gateware bridge for accessing the configuration flash
         if not jtag_spi:
             try:
+                from luna.gateware.applets.flash import FlashBridge
+
                 # Create a configuration flash bridge, reconfiguring the FPGA if necessary, 
                 # and get a connection handler
                 flash_bridge = FlashBridge.build(self)
