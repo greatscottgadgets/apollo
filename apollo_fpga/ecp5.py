@@ -681,17 +681,24 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         # The default path is to use a gateware bridge for accessing the configuration flash
         if not jtag_spi:
             try:
-                # Configure the FPGA and get a connection handler
-                flash_bridge = FlashBridge.configure(self)
+                # Create a configuration flash bridge, reconfiguring the FPGA if necessary, 
+                # and get a connection handler
+                flash_bridge = FlashBridge.build(self)
 
                 # Reuse the rest of the code by only overriding these methods
                 self._background_spi_transfer = flash_bridge._background_spi_transfer
                 self.trigger_reconfiguration  = flash_bridge.trigger_reconfiguration
-            except:
-                logging.warning("Failed to create configuration flash bridge, fall back to JTAG SPI")
+            except Exception as e:
+                logging.warning(f"Failed to create configuration flash bridge: {e}")
+                logging.warning("Fall back to JTAG SPI")
                 jtag_spi = True
         
         if jtag_spi:
+            # Make sure the FPGA cannot drive the SPI lines
+            self.unconfigure()
+            # Restart JTAG communication
+            self.chain.__exit__(None, None, None)
+            self.chain.__enter__()
             # Take control of the FPGA's SPI lines.
             self._enter_background_spi()
 
