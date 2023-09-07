@@ -13,7 +13,13 @@
 #include <apollo_board.h>
 
 /**
- * Different blink patterns with different semantic meanings.
+ * LED patterns.
+ *
+ * Values 0 to 31 will be interpreted as static bitmasks, and can be used
+ * to turn on specific combinations of LEDs in a fixed pattern.
+ *
+ * Other values as defined in this enum will produce dynamic blink patterns,
+ * with different semantic meanings.
  */
 typedef enum {
   BLINK_IDLE = 500,
@@ -27,6 +33,8 @@ typedef enum {
 
 /**
  * Sets the active LED blink pattern.
+ *
+ * See @ref blink_pattern_t for the meaning of the pattern argument.
  */
 void led_set_blink_pattern(blink_pattern_t pattern);
 
