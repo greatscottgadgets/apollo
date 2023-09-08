@@ -618,7 +618,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         self._flash_wait_for_completion()
 
 
-    def _flash_erase_size(self, address, size):
+    def _flash_erase(self, address, size):
         """ Erases from the defined address and size with sector / block operations.
 
         Both arguments are rounded to multiples of 4K (min. granularity).
@@ -691,7 +691,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
         # Prepare for writing by erasing the chip.
         if erase_first:
-            self._flash_erase_size(0, len(bitstream))
+            self._flash_erase(0, len(bitstream))
 
         #
         # Finally, program the bitstream itself.
