@@ -673,8 +673,13 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
 
 
-    def flash(self, bitstream, erase_first=True, disable_protections=False):
+    def flash(self, bitstream, erase_first=True, disable_protections=False, offset=0):
         """ Writes the relevant bitstream to a flash connected to the ECP5."""
+
+        # Only allow page-aligned writes for now, but unaligned writes are feasible
+        if offset % self.SPI_FLASH_PAGE_SIZE:
+            raise ValueError(f"Offset address ({offset}) must be a multiple of the page "
+                             f"size ({self.SPI_FLASH_PAGE_SIZE})).")
 
         # Take control of the FPGA's SPI lines.
         self._enter_background_spi()
@@ -696,7 +701,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         #
         # Finally, program the bitstream itself.
         #
-        address = 0
+        address = offset
         data_remaining = bytearray(bitstream)
         while data_remaining:
 
@@ -711,8 +716,13 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         self.trigger_reconfiguration()
 
 
-    def read_flash(self, length):
+    def read_flash(self, length, offset=0):
         """ Reads the contents of the attached FPGA's configuration flash. """
+
+        # Only allow page-aligned reads for now, but unaligned reads are feasible
+        if offset % self.SPI_FLASH_PAGE_SIZE:
+            raise ValueError(f"Offset address ({offset}) must be a multiple of the page "
+                             f"size ({self.SPI_FLASH_PAGE_SIZE})).")
 
         # Take control of the FPGA's SPI lines.
         self._enter_background_spi()
@@ -724,7 +734,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
         # Read our data back , one page at a time.
         data            = bytearray()
-        address         = 0
+        address         = offset
         bytes_remaining = length
 
         while bytes_remaining:
