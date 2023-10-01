@@ -29,7 +29,7 @@
 #include <string.h>
 
 #include <tusb.h>
-#include <bsp/board.h>
+#include <bsp/board_api.h>
 #include <apollo_board.h>
 
 #include "led.h"

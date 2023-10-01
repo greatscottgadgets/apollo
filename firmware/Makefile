@@ -8,15 +8,15 @@ ifeq ($(APOLLO_BOARD), )
 endif
 
 ifeq ($(APOLLO_BOARD), cynthion)
-	BOARD := luna_d11
+	BOARD := cynthion_d11
 endif
 
 # Allow Cynthion's old name "LUNA" for backward compatibility.
 ifeq ($(APOLLO_BOARD), luna)
-	BOARD := luna_d11
+	BOARD := cynthion_d11
 endif
 
-ifeq ($(BOARD), luna_d11)
+ifeq ($(BOARD), cynthion_d11)
 	# These should default to the latest revision but can be set on the command line.
 	BOARD_REVISION_MAJOR ?= 1
 	BOARD_REVISION_MINOR ?= 0
@@ -24,10 +24,10 @@ ifeq ($(BOARD), luna_d11)
 	# On r0.1 or r0.2 boards, we target the SAMD21 configuration.
 	ifeq ($(BOARD_REVISION_MAJOR), 0)
 		ifeq ($(BOARD_REVISION_MINOR), 1)
-			BOARD := luna_d21
+			BOARD := cynthion_d21
 		endif
 		ifeq ($(BOARD_REVISION_MINOR), 2)
-			BOARD := luna_d21
+			BOARD := cynthion_d21
 		endif
 	endif
 else
@@ -48,7 +48,6 @@ ifeq ($(CC), intercept-cc)
 endif
 
 # Include the tinyusb basis BSP.
-include $(TINYUSB_PATH)/tools/top.mk
 include $(TINYUSB_PATH)/examples/make.mk
 
 # If we're using intercept-build, override our compiler back to intercept-cc.
