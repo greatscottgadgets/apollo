@@ -8,8 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         target-board:
-        - 'luna_d11'
-        - 'luna_d21'
+        - 'cynthion'
         - 'samd11_xplained'
         - 'qtpy'
     steps:
