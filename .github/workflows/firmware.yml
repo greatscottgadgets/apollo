@@ -25,4 +25,4 @@ jobs:
     - name: Build Apollo firmware for ${{ matrix.target-board }}
       run: |
         cd firmware
-        APOLLO_BOARD=${{ matrix.target-board }} make all
+        APOLLO_BOARD=${{ matrix.target-board }} make get-deps all
