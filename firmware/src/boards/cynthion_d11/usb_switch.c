@@ -43,12 +43,6 @@ void take_over_usb(void)
  */
 void switch_control_task(void)
 {
-#if ((_BOARD_REVISION_MAJOR_ == 0) && (_BOARD_REVISION_MINOR_ < 6))
-	gpio_set_pin_pull_mode(PROGRAM_BUTTON, GPIO_PULL_UP);
-#else
-	gpio_set_pin_pull_mode(PROGRAM_BUTTON, GPIO_PULL_OFF);
-#endif
-	gpio_set_pin_direction(PROGRAM_BUTTON, GPIO_DIRECTION_IN);
 	if (gpio_get_pin_level(PROGRAM_BUTTON) == false) {
 		take_over_usb();
 	}
