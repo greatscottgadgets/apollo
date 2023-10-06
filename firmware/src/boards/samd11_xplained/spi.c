@@ -16,8 +16,6 @@
 #include "spi.h"
 #include "led.h"
 
-#include <bsp/board.h>
-
 
 // Hide the ugly Atmel Sercom object name.
 typedef Sercom sercom_t;

@@ -4,25 +4,30 @@
 
 # Ensure that a APOLLO_BOARD is selected.
 ifeq ($(APOLLO_BOARD), )
-	BOARD:=$(error You need to specify an APOLLO_BOARD as a make variable (e.g. APOLLO_BOARD=luna)!)
+	BOARD:=$(error You need to specify an APOLLO_BOARD as a make variable (e.g. APOLLO_BOARD=cynthion)!)
 endif
 
-# If the board is specified as 'luna' without a processor, we'll try to emulate the behavior
-# of LUNA's Apollo as much as we can.
+ifeq ($(APOLLO_BOARD), cynthion)
+	BOARD := cynthion_d11
+endif
+
+# Allow Cynthion's old name "LUNA" for backward compatibility.
 ifeq ($(APOLLO_BOARD), luna)
-	BOARD := luna_d11
+	BOARD := cynthion_d11
+endif
 
-	# These should default to the latest revision; but can be set on the command line.
-	BOARD_REVISION_MAJOR ?= 0
-	BOARD_REVISION_MINOR ?= 4
+ifeq ($(BOARD), cynthion_d11)
+	# These should default to the latest revision but can be set on the command line.
+	BOARD_REVISION_MAJOR ?= 1
+	BOARD_REVISION_MINOR ?= 0
 
-	# On r0.1 or r0.2 boards, we want to target the SAMD21 / luna_d11 configuration.
+	# On r0.1 or r0.2 boards, we target the SAMD21 configuration.
 	ifeq ($(BOARD_REVISION_MAJOR), 0)
 		ifeq ($(BOARD_REVISION_MINOR), 1)
-			BOARD := luna_d21
+			BOARD := cynthion_d21
 		endif
 		ifeq ($(BOARD_REVISION_MINOR), 2)
-			BOARD := luna_d21
+			BOARD := cynthion_d21
 		endif
 	endif
 else
@@ -43,7 +48,6 @@ ifeq ($(CC), intercept-cc)
 endif
 
 # Include the tinyusb basis BSP.
-include $(TINYUSB_PATH)/tools/top.mk
 include $(TINYUSB_PATH)/examples/make.mk
 
 # If we're using intercept-build, override our compiler back to intercept-cc.

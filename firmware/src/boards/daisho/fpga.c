@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <bsp/board.h>
+#include <bsp/board_api.h>
 #include <apollo_board.h>
 
 

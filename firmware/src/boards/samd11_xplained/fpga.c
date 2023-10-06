@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <bsp/board.h>
+#include <bsp/board_api.h>
 #include <hal/include/hal_gpio.h>
 
 // List of pins used for FPGA interfacing.

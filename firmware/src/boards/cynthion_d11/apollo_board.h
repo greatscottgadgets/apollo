@@ -29,7 +29,7 @@ typedef enum {
 
 
 /**
- * GPIO pin numbers.
+ * GPIO pins for FPGA JTAG
  */
 enum {
 	// Each of the JTAG pins.
@@ -41,11 +41,18 @@ enum {
 
 
 /**
- * List of pins used for FPGA interfacing.
+ * Other GPIO pins
  */
 enum {
-	PROGRAM_GPIO  = PIN_PA08,
-	PIN_PHY_RESET = PIN_PA09
+	FPGA_PROGRAM   = PIN_PA08,
+#if ((_BOARD_REVISION_MAJOR_ == 0) && (_BOARD_REVISION_MINOR_ < 6))
+	PROGRAM_BUTTON = PIN_PA16,
+	PHY_RESET      = PIN_PA09,
+#else
+	PROGRAM_BUTTON = PIN_PA02,
+	USB_SWITCH     = PIN_PA06,
+	FPGA_INT       = PIN_PA09,
+#endif
 };
 
 

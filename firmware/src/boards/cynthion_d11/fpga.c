@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <bsp/board.h>
+#include <bsp/board_api.h>
 #include <hal/include/hal_gpio.h>
 
 #include <apollo_board.h>
@@ -18,10 +18,8 @@
 void fpga_io_init(void)
 {
 	// By default, keep PROGRAM_N from being driven.
-	gpio_set_pin_level(PROGRAM_GPIO, true);
-	gpio_set_pin_direction(PROGRAM_GPIO, GPIO_DIRECTION_IN);
-
-	gpio_set_pin_direction(PIN_PHY_RESET, GPIO_DIRECTION_IN);
+	gpio_set_pin_level(FPGA_PROGRAM, true);
+	gpio_set_pin_direction(FPGA_PROGRAM, GPIO_DIRECTION_IN);
 }
 
 
@@ -30,13 +28,13 @@ void fpga_io_init(void)
  */
 void trigger_fpga_reconfiguration(void)
 {
-	gpio_set_pin_direction(PROGRAM_GPIO, GPIO_DIRECTION_OUT);
-	gpio_set_pin_level(PROGRAM_GPIO, false);
+	gpio_set_pin_direction(FPGA_PROGRAM, GPIO_DIRECTION_OUT);
+	gpio_set_pin_level(FPGA_PROGRAM, false);
 
 	board_delay(1);
 
-	gpio_set_pin_level(PROGRAM_GPIO, true);
-	gpio_set_pin_direction(PROGRAM_GPIO, GPIO_DIRECTION_IN);
+	gpio_set_pin_level(FPGA_PROGRAM, true);
+	gpio_set_pin_direction(FPGA_PROGRAM, GPIO_DIRECTION_IN);
 }
 
 
@@ -45,6 +43,6 @@ void trigger_fpga_reconfiguration(void)
  */
 void force_fpga_offline(void)
 {
-	gpio_set_pin_direction(PROGRAM_GPIO, GPIO_DIRECTION_OUT);
-	gpio_set_pin_level(PROGRAM_GPIO, false);
+	gpio_set_pin_direction(FPGA_PROGRAM, GPIO_DIRECTION_OUT);
+	gpio_set_pin_level(FPGA_PROGRAM, false);
 }

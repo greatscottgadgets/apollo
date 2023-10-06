@@ -196,13 +196,13 @@ class ApolloDebugger:
         if self.major == self.EXTERNAL_BOARD_MAJOR:
             return None, None
 
-        # Otherwise, if we have a revision greater than r0.2, our SPI should be via JTAG.
-        elif self.minor >= 0.3:
-            return ECP5_JTAGDebugSPIConnection(jtag_chain, self), ECP5_JTAGRegisters(jtag_chain)
-
-        # Otherwise, we'll want to use a real debug SPI, rather than a JTAG-SPI.
-        else:
+        # Use a real debug SPI on r0.1 and r0.2.
+        elif self.major == 0 and self.minor < 3:
             return None, None
+
+        # Otherwise, if we have a revision greater than r0.2, our SPI should be via JTAG.
+        else:
+            return ECP5_JTAGDebugSPIConnection(jtag_chain, self), ECP5_JTAGRegisters(jtag_chain)
 
 
 

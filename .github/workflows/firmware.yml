@@ -8,8 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         target-board:
-        - 'luna_d11'
-        - 'luna_d21'
+        - 'cynthion'
         - 'samd11_xplained'
         - 'qtpy'
     steps:
@@ -26,4 +25,4 @@ jobs:
     - name: Build Apollo firmware for ${{ matrix.target-board }}
       run: |
         cd firmware
-        APOLLO_BOARD=${{ matrix.target-board }} make all
+        APOLLO_BOARD=${{ matrix.target-board }} make get-deps all

@@ -14,7 +14,7 @@
 
 #include <tusb.h>
 #include <sam.h>
-#include <bsp/board.h>
+#include <bsp/board_api.h>
 #include <hal/include/hal_gpio.h>
 
 

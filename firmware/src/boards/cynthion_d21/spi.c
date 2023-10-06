@@ -16,8 +16,6 @@
 #include "spi.h"
 #include "led.h"
 
-#include <bsp/board.h>
-
 
 // Hide the ugly Atmel Sercom object name.
 typedef Sercom sercom_t;
@@ -29,8 +27,10 @@ static sercom_t *sercom_for_target(spi_target_t target)
 {
 	switch (target) {
 		case SPI_FPGA_JTAG:  return SERCOM0; // Alternatively, SERCOM2.
-		default:             return NULL;
+		case SPI_FPGA_DEBUG: return SERCOM2; // Alternatively, SERCOM4.
 	}
+
+	return NULL;
 }
 
 
@@ -44,18 +44,27 @@ static void _spi_configure_pinmux(spi_target_t target, bool use_for_spi)
 		// FPGA JTAG connection -- configure PA08 (TDI), PA09 (TCK), and PA10 (TDO).
 		case SPI_FPGA_JTAG:
 			if (use_for_spi) {
-				gpio_set_pin_function(PIN_PA14, MUX_PA14C_SERCOM0_PAD0);
-				gpio_set_pin_function(PIN_PA15, MUX_PA15C_SERCOM0_PAD1);
+				gpio_set_pin_function(PIN_PA08, MUX_PA08C_SERCOM0_PAD0);
+				gpio_set_pin_function(PIN_PA09, MUX_PA09C_SERCOM0_PAD1);
 				gpio_set_pin_function(PIN_PA10, MUX_PA10C_SERCOM0_PAD2);
 			} else {
-				gpio_set_pin_function(PIN_PA14, GPIO_PIN_FUNCTION_OFF);
-				gpio_set_pin_function(PIN_PA15, GPIO_PIN_FUNCTION_OFF);
+				gpio_set_pin_function(PIN_PA08, GPIO_PIN_FUNCTION_OFF);
+				gpio_set_pin_function(PIN_PA09, GPIO_PIN_FUNCTION_OFF);
 				gpio_set_pin_function(PIN_PA10, GPIO_PIN_FUNCTION_OFF);
 			}
 			break;
 
-		default:
-			// TODO
+		// FPGA debug port -- configure PA12 (MOSI), PA13 (SCK), and PA14 (MISO) as SERCOM pins.
+		case SPI_FPGA_DEBUG:
+			if (use_for_spi) {
+				gpio_set_pin_function(PIN_PA12, MUX_PA12C_SERCOM2_PAD0);
+				gpio_set_pin_function(PIN_PA13, MUX_PA13C_SERCOM2_PAD1);
+				gpio_set_pin_function(PIN_PA14, MUX_PA14C_SERCOM2_PAD2);
+			} else {
+				gpio_set_pin_function(PIN_PA12, GPIO_PIN_FUNCTION_OFF);
+				gpio_set_pin_function(PIN_PA13, GPIO_PIN_FUNCTION_OFF);
+				gpio_set_pin_function(PIN_PA14, GPIO_PIN_FUNCTION_OFF);
+			}
 			break;
 	}
 }
