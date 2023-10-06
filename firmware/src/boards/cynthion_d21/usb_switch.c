@@ -7,7 +7,6 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "led.h"
 #include "usb_switch.h"
 
 /**
@@ -15,7 +14,6 @@
  */
 void hand_off_usb(void)
 {
-	led_on(LED_D);
 }
 
 /**
@@ -23,7 +21,6 @@ void hand_off_usb(void)
  */
 void take_over_usb(void)
 {
-	led_on(LED_D);
 }
 
 /**

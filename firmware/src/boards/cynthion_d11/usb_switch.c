@@ -9,7 +9,6 @@
 
 #include "usb_switch.h"
 #include "apollo_board.h"
-#include "led.h"
 #include <hal/include/hal_gpio.h>
 
 /**
@@ -17,12 +16,9 @@
  */
 void hand_off_usb(void)
 {
-#if ((_BOARD_REVISION_MAJOR_ == 0) && (_BOARD_REVISION_MINOR_ < 6))
-	led_on(LED_D);
-#else
+#if (((_BOARD_REVISION_MAJOR_ == 0) && (_BOARD_REVISION_MINOR_ >= 6)) || (_BOARD_REVISION_MAJOR_ == 1))
 	gpio_set_pin_level(USB_SWITCH, false);
 	gpio_set_pin_direction(USB_SWITCH, GPIO_DIRECTION_OUT);
-	led_off(LED_D);
 #endif
 }
 
@@ -35,7 +31,6 @@ void take_over_usb(void)
 	gpio_set_pin_level(USB_SWITCH, true);
 	gpio_set_pin_direction(USB_SWITCH, GPIO_DIRECTION_OUT);
 #endif
-	led_on(LED_D);
 }
 
 /**
