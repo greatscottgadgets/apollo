@@ -15,28 +15,13 @@ import time
 import errno
 import logging
 import argparse
+from collections import namedtuple
 
 from apollo_fpga import ApolloDebugger
 from apollo_fpga.jtag import JTAGChain, JTAGPatternError
 from apollo_fpga.ecp5 import ECP5_JTAGProgrammer
 from apollo_fpga.onboard_jtag import *
 
-
-COMMAND_HELP_TEXT = \
-"""configure  -- Uploads a bitstream to the device's FPGA over JTAG.
-program       -- Programs the target bitstream onto the attached FPGA.
-force-offline -- Forces the board's FPGA offline; useful for recovering a "bricked" JTAG connection.
-jtag-scan     -- Prints information about devices on the onboard JTAG chain.
-flash-info    -- Prints information about the FPGA's attached configuration flash.
-flash-erase   -- Erases the contents of the FPGA's flash memory.
-flash-program -- Programs the target bitstream onto the attached FPGA.
-svf           -- Plays a given SVF file over JTAG.
-spi           -- Sends the given list of bytes over debug-SPI, and returns the response.
-spi-inv       -- Sends the given list of bytes over SPI with inverted CS.
-spi-reg       -- Reads or writes to a provided register over the debug-SPI.
-jtag-spi      -- Sends the given list of bytes over SPI-over-JTAG, and returns the response.
-jtag-reg      -- Reads or writes to a provided register of JTAG-tunneled debug SPI.
-"""
 
 #
 # Common JEDEC manufacturer IDs for SPI flash chips.
@@ -122,13 +107,13 @@ def print_chain_info(device, args):
 def play_svf_file(device, args):
     """ Command that prints the relevant flash chip's information to the console. """
 
-    if not args.argument:
+    if not args.file:
         logging.error("You must provide an SVF filename to play!\n")
         sys.exit(-1)
 
     with device.jtag as jtag:
         try:
-            jtag.play_svf_file(args.argument)
+            jtag.play_svf_file(args.file)
         except JTAGPatternError:
             # Our SVF player has already logged the error to stderr.
             logging.error("")
@@ -140,7 +125,7 @@ def configure_fpga(device, args):
     with device.jtag as jtag:
         programmer = device.create_jtag_programmer(jtag)
 
-        with open(args.argument, "rb") as f:
+        with open(args.file, "rb") as f:
             bitstream = f.read()
 
         programmer.configure(bitstream)
@@ -163,24 +148,28 @@ def erase_flash(device, args):
 def program_flash(device, args):
     with device.jtag as jtag:
         programmer = device.create_jtag_programmer(jtag)
+        offset = ast.literal_eval(args.offset) if args.offset else 0
 
-        with open(args.argument, "rb") as f:
+        with open(args.file, "rb") as f:
             bitstream = f.read()
 
-        programmer.flash(bitstream)
+        programmer.flash(bitstream, offset=offset)
 
     device.soft_reset()
 
 def read_back_flash(device, args):
 
     # XXX abstract this?
-    length = ast.literal_eval(args.value) if args.value else (4 * 1024 * 1024)
+    length = ast.literal_eval(args.length) if args.length else (4 * 1024 * 1024)
+    offset = ast.literal_eval(args.offset) if args.offset else 0
+    if offset:
+        length = min(length, 4 * 1024 * 1024 - offset)
 
     with device.jtag as jtag:
         programmer = device.create_jtag_programmer(jtag)
 
-        with open(args.argument, "wb") as f:
-            bitstream = programmer.read_flash(length)
+        with open(args.file, "wb") as f:
+            bitstream = programmer.read_flash(length, offset=offset)
             f.write(bitstream)
 
     device.soft_reset()
@@ -231,7 +220,7 @@ def force_fpga_offline(device, args):
 def _do_debug_spi(device, spi, args, *, invert_cs):
 
     # Try to figure out what data the user wants to send.
-    data_raw = ast.literal_eval(args.argument)
+    data_raw = ast.literal_eval(args.bytes)
     if isinstance(data_raw, int):
         data_raw = [data_raw]
 
@@ -254,7 +243,7 @@ def jtag_debug_spi(device, args):
 
 
 def set_led_pattern(device, args):
-    device.set_led_pattern(int(args.argument))
+    device.set_led_pattern(int(args.pattern))
 
 def debug_spi_inv(device, args):
     debug_spi(device, args, invert_cs=True)
@@ -263,7 +252,7 @@ def debug_spi_inv(device, args):
 def _do_debug_spi_register(device, spi, args):
 
     # Try to figure out what data the user wants to send.
-    address = int(args.argument, 0)
+    address = int(args.address, 0)
     if args.value:
         value = int(args.value, 0)
         is_write = True
@@ -286,59 +275,79 @@ def jtag_debug_spi_register(device, args):
     _do_debug_spi_register(device, reg, args)
 
 
-def main():
+Command = namedtuple("Command", ("name", "alias", "args", "help", "handler"),
+                     defaults=(None, [], [], None, None))
 
-    commands = {
+def main():
+    
+    commands = [
         # Info queries
-        'info':          print_device_info,
-        'jtag-scan':     print_chain_info,
-        'flash-info':    print_flash_info,
+        Command("info", handler=print_device_info, 
+                help="Print device info.", ),
+        Command("jtag-scan", handler=print_chain_info,
+                help="Prints information about devices on the onboard JTAG chain."),
+        Command("flash-info", handler=print_flash_info,
+                help="Prints information about the FPGA's attached configuration flash."),
 
         # Flash commands
-        'flash-erase':   erase_flash,
-        'flash':         program_flash,
-        'flash-program': program_flash,
-        'flash-read':    read_back_flash,
+        Command("flash-erase", handler=erase_flash,
+                help="Erases the contents of the FPGA's flash memory."),
+        Command("flash-program", alias=["flash"], args=["file", "--offset"], handler=program_flash,
+                help="Programs the target bitstream onto the attached FPGA."),
+        Command("flash-read", args=["file", "--offset", "--length"], handler=read_back_flash,
+                help="Reads the contents of the attached FPGA's configuration flash."),
 
         # JTAG commands
-        'svf':           play_svf_file,
-        'configure':     configure_fpga,
-        'reconfigure':   reconfigure_fpga,
-        'force-offline': force_fpga_offline,
+        Command("svf", args=["file"], handler=play_svf_file,
+                help="Plays a given SVF file over JTAG."),
+        Command("configure", args=["file"], handler=configure_fpga,
+                help="Uploads a bitstream to the device's FPGA over JTAG."),
+        Command("reconfigure", handler=reconfigure_fpga,
+                help="Requests the attached ECP5 reconfigure itself from its SPI flash."),
+        Command("force-offline", handler=force_fpga_offline,
+                help="Forces the board's FPGA offline; useful for recovering a \"bricked\" JTAG connection."),
 
         # SPI debug exchanges
-        'spi':           debug_spi,
-        'spi-inv':       debug_spi_inv,
-        'spi-reg':       debug_spi_register,
+        Command("spi", args=["bytes"], handler=debug_spi,
+                help="Sends the given list of bytes over debug-SPI, and returns the response."),
+        Command("spi-inv", args=["bytes"], handler=debug_spi_inv,
+                help="Sends the given list of bytes over SPI with inverted CS."),
+        Command("spi-reg", args=["address", "value"], handler=debug_spi_register,
+                help="Reads or writes to a provided register over the debug-SPI."),
 
         # JTAG-SPI debug exchanges.
-        'jtag-spi':      jtag_debug_spi,
-        'jtag-reg':      jtag_debug_spi_register,
+        Command("jtag-spi", args=["bytes"], handler=jtag_debug_spi,
+                help="Sends the given list of bytes over SPI-over-JTAG, and returns the response."),
+        Command("jtag-reg", args=["address", "value"], handler=jtag_debug_spi_register,
+                help="Reads or writes to a provided register of JTAG-tunneled debug SPI."),
 
         # Misc
-        'leds':          set_led_pattern,
-
-    }
-
+        Command("leds", args=["pattern"], handler=set_led_pattern,
+                help="Sets the specified pattern for the Debug LEDs."),
+    ]
 
     # Set up a simple argument parser.
     parser = argparse.ArgumentParser(description="Apollo FPGA Configuration / Debug tool",
             formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('command', metavar='command:', choices=commands, help=COMMAND_HELP_TEXT)
-    parser.add_argument('argument', metavar="[argument]", nargs='?',
-                        help='the argument to the given command; often a filename')
-    parser.add_argument('value', metavar="[value]", nargs='?',
-                        help='the value to a register write command, or the length for flash read')
+    sub_parsers = parser.add_subparsers(dest="command", metavar="command")
+    for command in commands:
+        cmd_parser = sub_parsers.add_parser(command.name, aliases=command.alias, help=command.help)
+        cmd_parser.set_defaults(func=command.handler)
+        for arg in command.args:
+            cmd_parser.add_argument(arg)
 
     args = parser.parse_args()
+    if not args.command:
+        parser.print_help()
+        return
+    
     device = ApolloDebugger()
 
     # Set up python's logging to act as a simple print, for now.
     logging.basicConfig(level=logging.INFO, format="%(message)-s")
 
     # Execute the relevant command.
-    command = commands[args.command]
-    command(device, args)
+    args.func(device, args)
 
 
 if __name__ == '__main__':

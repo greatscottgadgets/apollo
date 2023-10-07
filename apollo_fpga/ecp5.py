@@ -192,6 +192,11 @@ class ECP5Programmer:
         # Erase the full flash chip.
         CHIP_ERASE     = 0xC7
 
+        # Erase by sectors/blocks
+        ERASE_SEC_4K   = 0x20
+        ERASE_BLK_32K  = 0x52
+        ERASE_BLK_64K  = 0xD8
+
 
     def __init__(self, cfg_pins=None, init_pin=None, program_pin=None, done_pin=None, verbose_function=None):
         """ Captures the common fields for all ECP5 programmers.
@@ -572,8 +577,6 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         """ Blocks until the flash has compelted any pending operations. """
 
         while True:
-            time.sleep(1e-6)
-
             # Read the flash's status register...
             flash_status = self._background_spi_transfer([self.FlashOpcode.READ_STATUS1, 0])
 
@@ -581,6 +584,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
             if (flash_status[1] & self.SPI_FLASH_BUSY_MASK) == 0:
                 break
 
+            time.sleep(1e-6)
 
     def _get_flash_status(self):
         """ Retrieves the FPGA's configuration flash's status register. """
@@ -594,7 +598,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         self._flash_wait_for_completion()
 
         # Request that the flash enter write-enabled mode...
-        self._background_spi_transfer([self.FlashOpcode.ENABLE_WRITE])
+        self._background_spi_transfer([self.FlashOpcode.ENABLE_WRITE], ignore_response=True)
 
         if (self._get_flash_status() & self.SPI_FLASH_WRITE_MASK) == 0:
             raise IOError("Flash did not enter a writeable state!")
@@ -610,9 +614,38 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
         # Erase the connected SPI flash.
         # TODO: support more granular erases?
-        self._background_spi_transfer([self.FlashOpcode.CHIP_ERASE])
+        self._background_spi_transfer([self.FlashOpcode.CHIP_ERASE], ignore_response=True)
         self._flash_wait_for_completion()
 
+
+    def _flash_erase(self, address, size):
+        """ Erases from the defined address and size with sector / block operations.
+
+        Both arguments are rounded to multiples of 4K (min. granularity).
+        """
+
+        opcode_table = {
+            65536: self.FlashOpcode.ERASE_BLK_64K,
+            32768: self.FlashOpcode.ERASE_BLK_32K,
+            4096:  self.FlashOpcode.ERASE_SEC_4K,
+        }
+
+        # Find address aligned to 4K boundaries
+        align    = address % 4096
+        address -= align
+        size    += align
+
+        # Issue sequence of erase calls.
+        while size > 0:
+            for chunk_sz, opcode in opcode_table.items():
+                if size >= chunk_sz and address % chunk_sz == 0:
+                    break
+            address_bytes = address.to_bytes(3, byteorder='big')
+            self._enable_writing_to_flash()
+            self._background_spi_transfer([opcode, *address_bytes], ignore_response=True)
+            self._flash_wait_for_completion()
+            address += chunk_sz
+            size    -= chunk_sz
 
 
     def _flash_write_page(self, address, data):
@@ -622,7 +655,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
         # Send the write command...
         address_bytes = address.to_bytes(3, byteorder='big')
-        self._background_spi_transfer([self.FlashOpcode.WRITE_PAGE, *address_bytes, *data])
+        self._background_spi_transfer([self.FlashOpcode.WRITE_PAGE, *address_bytes, *data], ignore_response=True)
 
         # ... and wait for it to complete.
         self._flash_wait_for_completion()
@@ -640,8 +673,13 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
 
 
-    def flash(self, bitstream, erase_first=True, disable_protections=False):
+    def flash(self, bitstream, erase_first=True, disable_protections=False, offset=0):
         """ Writes the relevant bitstream to a flash connected to the ECP5."""
+
+        # Only allow page-aligned writes for now, but unaligned writes are feasible
+        if offset % self.SPI_FLASH_PAGE_SIZE:
+            raise ValueError(f"Offset address ({offset}) must be a multiple of the page "
+                             f"size ({self.SPI_FLASH_PAGE_SIZE})).")
 
         # Take control of the FPGA's SPI lines.
         self._enter_background_spi()
@@ -654,19 +692,16 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         # Disable any write protections, if requested.
         if disable_protections:
             self._enable_writing_to_flash()
-            self._background_spi_transfer([self.FlashOpcode.WRITE_STATUS1, 0])
+            self._background_spi_transfer([self.FlashOpcode.WRITE_STATUS1, 0], ignore_response=True)
 
         # Prepare for writing by erasing the chip.
-        # TODO: potentially support more granular erases, here?
         if erase_first:
-            self._enable_writing_to_flash()
-            self._background_spi_transfer([self.FlashOpcode.CHIP_ERASE])
-            self._flash_wait_for_completion()
+            self._flash_erase(0, len(bitstream))
 
         #
         # Finally, program the bitstream itself.
         #
-        address = 0
+        address = offset
         data_remaining = bytearray(bitstream)
         while data_remaining:
 
@@ -681,8 +716,13 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         self.trigger_reconfiguration()
 
 
-    def read_flash(self, length):
+    def read_flash(self, length, offset=0):
         """ Reads the contents of the attached FPGA's configuration flash. """
+
+        # Only allow page-aligned reads for now, but unaligned reads are feasible
+        if offset % self.SPI_FLASH_PAGE_SIZE:
+            raise ValueError(f"Offset address ({offset}) must be a multiple of the page "
+                             f"size ({self.SPI_FLASH_PAGE_SIZE})).")
 
         # Take control of the FPGA's SPI lines.
         self._enter_background_spi()
@@ -694,7 +734,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
         # Read our data back , one page at a time.
         data            = bytearray()
-        address         = 0
+        address         = offset
         bytes_remaining = length
 
         while bytes_remaining:
@@ -999,7 +1039,7 @@ class ECP5_JTAGProgrammer(ECP5CommandBasedProgrammer):
 
 
 
-    def _background_spi_transfer(self, data, reverse=False):
+    def _background_spi_transfer(self, data, reverse=False, ignore_response=False):
         """ Performs a background SPI transfer, targeting the configuration flash."""
 
         # Our JTAG protocol is bit-oriented; while our SPI is byte-oriented. In order to
@@ -1026,11 +1066,12 @@ class ECP5_JTAGProgrammer(ECP5CommandBasedProgrammer):
         bits_to_send       = len(jtag_ready_data) * 8
 
         # Issue the command, and capture any data send in response.
-        response = self.chain.shift_data(tdi=jtag_ready_data, length=bits_to_send)
+        response = self.chain.shift_data(tdi=jtag_ready_data, length=bits_to_send, ignore_response=ignore_response)
 
         # Bit-reverse the data we capture in response, compensating for MSB-first ordering.
-        response = [reverse_bits(b) for b in bytes(response)]
-        return bytes(response)
+        if response:
+            response = [reverse_bits(b) for b in bytes(response)]
+            return bytes(response)
 
 
 
