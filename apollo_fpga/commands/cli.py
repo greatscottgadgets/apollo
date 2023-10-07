@@ -146,6 +146,8 @@ def erase_flash(device, args):
 
 
 def program_flash(device, args):
+    ensure_unconfigured(device)
+
     with device.jtag as jtag:
         programmer = device.create_jtag_programmer(jtag)
         offset = ast.literal_eval(args.offset) if args.offset else 0
@@ -158,6 +160,7 @@ def program_flash(device, args):
     device.soft_reset()
 
 def read_back_flash(device, args):
+    ensure_unconfigured(device)
 
     # XXX abstract this?
     length = ast.literal_eval(args.length) if args.length else (4 * 1024 * 1024)
