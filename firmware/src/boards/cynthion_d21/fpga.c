@@ -1,9 +1,7 @@
 /**
  * Code for basic FPGA interfacing.
  *
- * This file is part of LUNA.
- *
- * Copyright (c) 2020 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2020-2023 Great Scott Gadgets <info@greatscottgadgets.com>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -58,14 +56,4 @@ void trigger_fpga_reconfiguration(void)
 
 	gpio_set_pin_level(PIN_PROG, true);
 	gpio_set_pin_direction(PIN_PROG, GPIO_DIRECTION_IN);
-}
-
-
-/**
- * Requests that we hold the FPGA in an unconfigured state.
- */
-void force_fpga_offline(void)
-{
-	gpio_set_pin_direction(PIN_PROG, GPIO_DIRECTION_OUT);
-	gpio_set_pin_level(PIN_PROG, false);
 }
