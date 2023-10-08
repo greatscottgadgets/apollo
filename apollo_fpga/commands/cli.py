@@ -157,7 +157,6 @@ def program_flash(device, args):
 
         programmer.flash(bitstream, offset=offset)
 
-    device.soft_reset()
 
 def read_back_flash(device, args):
     ensure_unconfigured(device)
