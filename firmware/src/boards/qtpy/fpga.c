@@ -9,7 +9,9 @@
 
 #include <bsp/board_api.h>
 #include <hal/include/hal_gpio.h>
-#include <apollo_board.h>
+
+#include "apollo_board.h"
+#include "jtag.h"
 
 // List of pins used for FPGA interfacing.
 
@@ -51,6 +53,11 @@ void fpga_io_init(void)
  */
 void trigger_fpga_reconfiguration(void)
 {
+	jtag_init();
+	jtag_go_to_state(STATE_TEST_LOGIC_RESET);
+	jtag_wait_time(2);
+	jtag_deinit();
+
 	gpio_set_pin_direction(PIN_PROG, GPIO_DIRECTION_OUT);
 	gpio_set_pin_level(PIN_PROG, false);
 
