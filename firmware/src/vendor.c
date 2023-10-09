@@ -89,7 +89,7 @@ bool handle_set_led_pattern(uint8_t rhport, tusb_control_request_t const* reques
 bool handle_trigger_fpga_reconfiguration(uint8_t rhport, tusb_control_request_t const* request)
 {
 	trigger_fpga_reconfiguration();
-	return true;
+	return tud_control_xfer(rhport, request, NULL, 0);
 }
 
 
@@ -99,7 +99,7 @@ bool handle_trigger_fpga_reconfiguration(uint8_t rhport, tusb_control_request_t 
 bool handle_force_fpga_offline(uint8_t rhport, tusb_control_request_t const* request)
 {
 	force_fpga_offline();
-	return true;
+	return tud_control_xfer(rhport, request, NULL, 0);
 }
 
 

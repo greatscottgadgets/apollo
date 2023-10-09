@@ -228,18 +228,12 @@ class ApolloDebugger:
 
     def soft_reset(self):
         """ Resets the target (FPGA/etc) connected to the debug controller. """
-        try:
-            self.out_request(self.REQUEST_RECONFIGURE)
-        except usb.core.USBError:
-            pass
+        self.out_request(self.REQUEST_RECONFIGURE)
 
 
     def force_fpga_offline(self):
         """ Resets the target (FPGA/etc) connected to the debug controller. """
-        try:
-            self.out_request(self.REQUEST_FORCE_FPGA_OFFLINE)
-        except usb.core.USBError:
-            pass
+        self.out_request(self.REQUEST_FORCE_FPGA_OFFLINE)
 
     def close(self):
         """ Closes the USB device so it can be reused, possibly by another ApolloDebugger """
