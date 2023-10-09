@@ -7,6 +7,7 @@
 
 #include "button.h"
 #include "usb_switch.h"
+#include "fpga.h"
 #include "apollo_board.h"
 #include <hal/include/hal_gpio.h>
 
@@ -29,9 +30,8 @@ bool button_pressed(void)
  */
 void button_task(void)
 {
-#ifdef BOARD_HAS_USB_SWITCH
 	if (button_pressed()) {
+		force_fpga_offline();
 		take_over_usb();
 	}
-#endif
 }
