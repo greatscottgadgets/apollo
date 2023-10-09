@@ -21,10 +21,5 @@ void hand_off_usb(void);
  */
 void take_over_usb(void);
 
-/**
- * Handle switch control user request.
- */
-void switch_control_task(void);
-
 
 #endif

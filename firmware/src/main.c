@@ -1,8 +1,8 @@
 /*
- * The MIT License (MIT)
- *
+ * Copyright (c) 2019-2023 Great Scott Gadgets <info@greatscottgadgets.com>
  * Copyright (c) 2019 Katherine J. Temkin <kate@ktemkin.com>
- * Copyright (c) 2019 Great Scott Gadgets <ktemkin@greatscottgadgets.com>
+ *
+ * The MIT License (MIT)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,7 @@
 #include "console.h"
 #include "debug_spi.h"
 #include "usb_switch.h"
-//#include "selftest.h"
+#include "button.h"
 
 
 
@@ -64,7 +64,7 @@ int main(void)
 		tud_task(); // tinyusb device task
 		console_task();
 		heartbeat_task();
-		switch_control_task();
+		button_task();
 	}
 
 	return 0;
