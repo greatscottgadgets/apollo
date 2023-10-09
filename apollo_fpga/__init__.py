@@ -206,7 +206,7 @@ class ApolloDebugger:
 
 
 
-    def out_request(self, number, value=0, index=0, data=None, timeout=5000):
+    def out_request(self, number, value=0, index=0, data=None, timeout=500):
         """ Helper that issues an OUT control request to the debugger. """
 
         request_type = usb.ENDPOINT_OUT | usb.RECIP_DEVICE | usb.TYPE_VENDOR
