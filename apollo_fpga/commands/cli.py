@@ -214,9 +214,6 @@ def reconfigure_fpga(device, args):
 def force_fpga_offline(device, args):
     """ Command that requests the attached ECP5 be held unconfigured. """
     device.force_fpga_offline()
-    logging.warning("\nWARNING: Forced the FPGA into an unconfigured state!\n")
-    logging.warning("Configuration will not work properly until you run 'apollo reconfigure' or reset the device.")
-    logging.warning("Flashing the FPGA's configuration SPI flash will still work as intended.\n\n")
 
 
 def _do_debug_spi(device, spi, args, *, invert_cs):
@@ -307,7 +304,7 @@ def main():
         Command("reconfigure", handler=reconfigure_fpga,
                 help="Requests the attached ECP5 reconfigure itself from its SPI flash."),
         Command("force-offline", handler=force_fpga_offline,
-                help="Forces the board's FPGA offline; useful for recovering a \"bricked\" JTAG connection."),
+                help="Forces the board's FPGA offline."),
 
         # SPI debug exchanges
         Command("spi", args=["bytes"], handler=debug_spi,
