@@ -27,11 +27,18 @@ void fpga_io_init(void)
  */
 void trigger_fpga_reconfiguration(void)
 {
+	/*
+	 * If the JTAG TAP was left in certain states, pulsing PROGRAMN has no
+	 * effect, so we reset the state first.
+	 */
 	jtag_init();
 	jtag_go_to_state(STATE_TEST_LOGIC_RESET);
 	jtag_wait_time(2);
 	jtag_deinit();
 
+	/*
+	 * Now pulse PROGRAMN to instruct the FPGA to configure itself.
+	 */
 	gpio_set_pin_direction(FPGA_PROGRAM, GPIO_DIRECTION_OUT);
 	gpio_set_pin_level(FPGA_PROGRAM, false);
 
