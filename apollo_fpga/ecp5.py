@@ -713,8 +713,6 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
             self._flash_write_page(address, chunk)
             address += len(chunk)
 
-        self.trigger_reconfiguration()
-
 
     def read_flash(self, length, offset=0):
         """ Reads the contents of the attached FPGA's configuration flash. """

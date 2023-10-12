@@ -1,8 +1,8 @@
 /*
- * The MIT License (MIT)
- *
+ * Copyright (c) 2019-2023 Great Scott Gadgets <info@greatscottgadgets.com>
  * Copyright (c) 2019 Katherine J. Temkin <kate@ktemkin.com>
- * Copyright (c) 2019 Great Scott Gadgets <ktemkin@greatscottgadgets.com>
+ *
+ * The MIT License (MIT)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,7 @@
 #include "console.h"
 #include "debug_spi.h"
 #include "usb_switch.h"
-//#include "selftest.h"
+#include "button.h"
 
 
 
@@ -53,18 +53,29 @@ int main(void)
 	fpga_io_init();
 	led_init();
 	debug_spi_init();
-	hand_off_usb();
 
-	// Trigger an FPGA reconfiguration; so the FPGA automatically
-	// configures itself from its SPI ROM on reset. This effectively
-	// makes the RESET button reset both the uC and the FPGA.
-	trigger_fpga_reconfiguration();
+	if (button_pressed()) {
+		/*
+		 * Interrupted start-up: Force the FPGA offline and take
+		 * control of the USB port.
+		 */
+                force_fpga_offline();
+                take_over_usb();
+	} else {
+		/*
+		 * Normal start-up: Reconfigure FPGA from flash and hand off
+		 * the USB port to the FPGA. This effectively makes the RESET
+		 * button reset both the microcontroller and the FPGA.
+		 */
+		trigger_fpga_reconfiguration();
+		hand_off_usb();
+	}
 
 	while (1) {
 		tud_task(); // tinyusb device task
 		console_task();
 		heartbeat_task();
-		switch_control_task();
+		button_task();
 	}
 
 	return 0;

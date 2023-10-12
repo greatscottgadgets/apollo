@@ -14,6 +14,12 @@
 #include <hal/include/hal_gpio.h>
 #include <stdbool.h>
 
+#define BOARD_HAS_PROGRAM_BUTTON
+
+#if (((_BOARD_REVISION_MAJOR_ == 0) && (_BOARD_REVISION_MINOR_ >= 6)) || (_BOARD_REVISION_MAJOR_ == 1))
+#define BOARD_HAS_USB_SWITCH
+#endif
+
 /**
  * GPIO pins for each of the microcontroller LEDs.
  */

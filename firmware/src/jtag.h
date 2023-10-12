@@ -5,9 +5,7 @@
  * configuration and debugging of the attached FPGA. It is not intended to be a general-
  * purpose JTAG link.
  *
- * This file is part of LUNA.
- *
- * Copyright (c) 2019 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2019-2023 Great Scott Gadgets <info@greatscottgadgets.com>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -45,6 +43,12 @@ void jtag_init(void);
  * De-inits the JTAG connection, so the JTAG chain. is no longer driven.
  */
 void jtag_deinit(void);
+
+
+/**
+ * Performs JTAG scan.
+ */
+bool jtag_scan(uint32_t num_bits, bool advance_state, bool bitbang);
 
 
 /**
