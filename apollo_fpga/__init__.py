@@ -4,6 +4,8 @@
 # Copyright (c) 2020 Great Scott Gadgets <info@greatscottgadgets.com>
 # SPDX-License-Identifier: BSD-3-Clause
 
+import os
+import time
 import usb.core
 
 from .jtag  import JTAGChain
@@ -32,13 +34,18 @@ def create_ila_frontend(ila, *, use_cs_multiplexing=False):
 class ApolloDebugger:
     """ Class representing a link to an Apollo Debug Module. """
 
-    # This VID/PID pair is unique to development LUNA boards.
-    # TODO: potentially change this to an OpenMoko VID, like other LUNA boards.
-    USB_IDS  = [(0x1d50, 0x615c), (0x16d0, 0x05a5)]
+    # VID/PID pairs for Apollo and gateware.
+    APOLLO_USB_IDS = [(0x1d50, 0x615c)]
+    LUNA_USB_IDS   = [(0x1d50, 0x615b)]
+
+    # If we have a LUNA_USB_IDS variable, we can use it to find the LUNA device.
+    if os.getenv("LUNA_USB_IDS"):
+        LUNA_USB_IDS += [tuple([int(x, 16) for x in os.getenv("LUNA_USB_IDS").split(":")])]
 
     REQUEST_SET_LED_PATTERN    = 0xa1
     REQUEST_RECONFIGURE        = 0xc0
     REQUEST_FORCE_FPGA_OFFLINE = 0xc1
+    REQUEST_HONOR_FPGA_ADV     = 0xc2
 
     LED_PATTERN_IDLE = 500
     LED_PATTERN_UPLOAD = 50
@@ -69,10 +76,34 @@ class ApolloDebugger:
         """ Sets up a connection to the debugger. """
 
         # Try to create a connection to our Apollo debug firmware.
-        for vid, pid in self.USB_IDS:
+        for vid, pid in self.APOLLO_USB_IDS:
             device = usb.core.find(idVendor=vid, idProduct=pid)
             if device is not None:
                 break
+
+        # If no Apollo VID/PID is found but a gateware VID/PID is, we request the gateware
+        # to liberate the USB port. In devices with a shared port, this effectively hands off 
+        # the USB port to Apollo.
+        find_again = False
+        if device is None:
+            for vid, pid in self.LUNA_USB_IDS:
+                fpga_device = usb.core.find(idVendor=vid, idProduct=pid)
+                if fpga_device is None:
+                    continue
+                for cfg in fpga_device:
+                    intf = usb.util.find_descriptor(cfg, bInterfaceClass=0xFF, bInterfaceSubClass=0x00)
+                    if intf is None:
+                        continue
+                    find_again = self._request_handoff_to_apollo(fpga_device, intf.bInterfaceNumber)
+                    break
+
+        # If we requested a handoff, retry the connection to Apollo debug firmware
+        if find_again:
+            time.sleep(2)  # wait for Apollo enumeration
+            for vid, pid in self.APOLLO_USB_IDS:
+                device = usb.core.find(idVendor=vid, idProduct=pid)
+                if device is not None:
+                    break
 
         # If we couldn't find an Apollo device, bail out.
         if device is None:
@@ -92,6 +123,17 @@ class ApolloDebugger:
             self.spi   = DebugSPIConnection(self)
             self.registers = self.spi
 
+
+    @staticmethod
+    def _request_handoff_to_apollo(device, intf_number):
+        """ Requests the gateware to liberate the USB port. """
+        REQUEST_APOLLO_ADV_STOP = 0xF0
+        request_type = usb.ENDPOINT_OUT | usb.RECIP_INTERFACE | usb.TYPE_VENDOR
+        try:
+            device.ctrl_transfer(request_type, REQUEST_APOLLO_ADV_STOP, wIndex=intf_number, timeout=5000)
+        except usb.USBError:
+            return False
+        return True
 
 
     def detect_connected_version(self):
@@ -234,6 +276,10 @@ class ApolloDebugger:
     def force_fpga_offline(self):
         """ Resets the target (FPGA/etc) connected to the debug controller. """
         self.out_request(self.REQUEST_FORCE_FPGA_OFFLINE)
+
+    def honor_fpga_adv(self):
+        """ Tell Apollo to honor requests from FPGA_ADV again. Useful after reconfiguration. """
+        self.out_request(self.REQUEST_HONOR_FPGA_ADV)
 
     def close(self):
         """ Closes the USB device so it can be reused, possibly by another ApolloDebugger """

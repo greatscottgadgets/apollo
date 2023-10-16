@@ -130,6 +130,9 @@ def configure_fpga(device, args):
 
         programmer.configure(bitstream)
 
+    # Let the LUNA gateware take over in devices with shared USB port
+    device.honor_fpga_adv()
+
 
 def ensure_unconfigured(device):
     with device.jtag as jtag:
@@ -209,6 +212,9 @@ def print_flash_info(device, args):
 def reconfigure_fpga(device, args):
     """ Command that requests the attached ECP5 reconfigure itself from its SPI flash. """
     device.soft_reset()
+
+    # Let the LUNA gateware take over in devices with shared USB port
+    device.honor_fpga_adv()
 
 
 def force_fpga_offline(device, args):
