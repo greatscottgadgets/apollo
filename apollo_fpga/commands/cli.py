@@ -29,7 +29,9 @@ try:
     from luna.gateware.platform import get_appropriate_platform
     from apollo_fpga.gateware.flash_bridge import FlashBridge, FlashBridgeConnection
 except ImportError:
-    pass
+    flash_fast_enable = False
+else:
+    flash_fast_enable = True
 
 
 #
@@ -200,6 +202,12 @@ def program_flash_fast(device, args, *, platform):
     with open(args.file, "rb") as f:
         bitstream = f.read()
     programmer.flash(bitstream)
+
+
+def program_flash_fast_unavailable(device, args):
+    logging.error("`flash-fast` requires the `luna` package in the Python environment.\n"
+                  "Install `luna` or use `flash` instead.")
+    sys.exit(-1)
 
 
 def read_back_flash(device, args):
@@ -391,7 +399,10 @@ def main():
     
     # Add a special case where the platform information is needed
     if args.command == "flash-fast":
-        args.func = partial(program_flash_fast, platform=get_appropriate_platform())
+        if flash_fast_enable:
+            args.func = partial(program_flash_fast, platform=get_appropriate_platform())
+        else:
+            args.func = program_flash_fast_unavailable
     
     device = ApolloDebugger()
 
