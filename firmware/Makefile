@@ -18,7 +18,7 @@ endif
 
 ifeq ($(BOARD), cynthion_d11)
 	# These should default to the latest revision but can be set on the command line.
-	BOARD_REVISION_MAJOR ?= 1
+	BOARD_REVISION_MAJOR ?= 3
 	BOARD_REVISION_MINOR ?= 0
 
 	# On r0.1 or r0.2 boards, we target the SAMD21 configuration.

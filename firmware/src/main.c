@@ -61,15 +61,24 @@ int main(void)
 		 */
                 force_fpga_offline();
                 take_over_usb();
+
+		/*
+		 * Now that the FPGA is being held offline, release the
+		 * mechanism that prevented the FPGA from configuring itself at
+		 * startup.
+		 */
+		permit_fpga_configuration(true);
 	} else {
 		/*
 		 * Normal start-up: Reconfigure FPGA from flash and hand off
 		 * the USB port to the FPGA. This effectively makes the RESET
 		 * button reset both the microcontroller and the FPGA.
 		 */
+		permit_fpga_configuration(true);
 		trigger_fpga_reconfiguration();
 		hand_off_usb();
 	}
+
 
 	while (1) {
 		tud_task(); // tinyusb device task

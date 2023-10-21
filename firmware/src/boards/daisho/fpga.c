@@ -21,6 +21,16 @@ enum {
 };
 
 
+/*
+ * Allows or disallows the FPGA from configuring. When disallowed,
+ * initialization (erasing of configuration memory) takes place, but the FPGA
+ * does not proceed to the configuration phase.
+ */
+void permit_fpga_configuration(bool enable)
+{
+}
+
+
 static void fpga_initialize_power(void)
 {
 	gpio_t rail_enables[] = {
