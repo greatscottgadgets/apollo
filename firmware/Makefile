@@ -17,6 +17,16 @@ ifeq ($(APOLLO_BOARD), luna)
 endif
 
 ifeq ($(BOARD), cynthion_d11)
+
+	# If no revision is provided, enable revision autodetection
+	ifeq ($(BOARD_REVISION_MAJOR),)
+		ifeq ($(BOARD_REVISION_MINOR),)
+			BOARD_REVISION_DETECT := 1
+			BOARD_REVISION_MAJOR := 255
+			BOARD_REVISION_MINOR := 255
+		endif
+	endif
+
 	# These should default to the latest revision but can be set on the command line.
 	BOARD_REVISION_MAJOR ?= 1
 	BOARD_REVISION_MINOR ?= 3
@@ -34,6 +44,8 @@ else
 	BOARD := $(APOLLO_BOARD)
 endif
 
+# This should be set to 1 at this point if autodetection is used
+BOARD_REVISION_DETECT ?= 0
 
 # Default to using a maximum possible HW version, which means "generic Apollo board".
 BOARD_REVISION_MAJOR ?= 255
@@ -59,6 +71,7 @@ CFLAGS += \
 	-Wno-unused-parameter \
 	-Wno-cast-qual \
 	-fstrict-volatile-bitfields \
+	-D_BOARD_REVISION_DETECT_=$(BOARD_REVISION_DETECT) \
 	-D_BOARD_REVISION_MAJOR_=$(BOARD_REVISION_MAJOR) \
 	-D_BOARD_REVISION_MINOR_=$(BOARD_REVISION_MINOR) \
 	-g
