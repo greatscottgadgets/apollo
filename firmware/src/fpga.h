@@ -15,6 +15,13 @@
  */
 void fpga_io_init(void);
 
+/*
+ * Allows or disallows the FPGA from configuring. When disallowed,
+ * initialization (erasing of configuration memory) takes place, but the FPGA
+ * does not proceed to the configuration phase.
+ */
+void permit_fpga_configuration(bool enable);
+
 /**
  * Requests that the FPGA clear its configuration and try to reconfigure.
  */
