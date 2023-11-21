@@ -696,7 +696,7 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
 
         # Prepare for writing by erasing the chip.
         if erase_first:
-            self._flash_erase(0, len(bitstream))
+            self._flash_erase(offset, len(bitstream))
 
         #
         # Finally, program the bitstream itself.
