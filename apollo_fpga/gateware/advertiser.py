@@ -84,25 +84,18 @@ class ApolloAdvertiserRequestHandler(USBRequestHandler):
                   (setup.recipient == USBRequestRecipient.INTERFACE) & \
                   (setup.index == self.if_number)):
             
-            with m.Switch(setup.request):
+            with m.If(setup.request == self.REQUEST_APOLLO_ADV_STOP):
 
-                with m.Case(self.REQUEST_APOLLO_ADV_STOP):
+                # Notify that we want to manage this request
+                m.d.comb += interface.claim.eq(1)
 
-                    # Once the receive is complete, respond with an ACK.
-                    with m.If(interface.rx_ready_for_response):
-                        m.d.comb += interface.handshakes_out.ack.eq(1)
+                # Once the receive is complete, respond with an ACK.
+                with m.If(interface.rx_ready_for_response):
+                    m.d.comb += interface.handshakes_out.ack.eq(1)
 
-                    # If we reach the status stage, send a ZLP.
-                    with m.If(interface.status_requested):
-                        m.d.comb += self.send_zlp()
-                        m.d.usb += self.stop_pin.eq(1)
+                # If we reach the status stage, send a ZLP.
+                with m.If(interface.status_requested):
+                    m.d.comb += self.send_zlp()
+                    m.d.usb += self.stop_pin.eq(1)
 
-                with m.Case():
-
-                    #
-                    # Stall unhandled requests.
-                    #
-                    with m.If(interface.status_requested | interface.data_requested):
-                        m.d.comb += interface.handshakes_out.stall.eq(1)
-
-                return m
+        return m
