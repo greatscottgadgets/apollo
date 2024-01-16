@@ -39,6 +39,7 @@
 #include "debug_spi.h"
 #include "usb_switch.h"
 #include "button.h"
+#include "fpga_adv.h"
 
 
 
@@ -59,8 +60,8 @@ int main(void)
 		 * Interrupted start-up: Force the FPGA offline and take
 		 * control of the USB port.
 		 */
-                force_fpga_offline();
-                take_over_usb();
+		force_fpga_offline();
+		take_over_usb();
 
 		/*
 		 * Now that the FPGA is being held offline, release the
@@ -79,12 +80,14 @@ int main(void)
 		hand_off_usb();
 	}
 
+	fpga_adv_init();
 
 	while (1) {
 		tud_task(); // tinyusb device task
 		console_task();
 		heartbeat_task();
 		button_task();
+		fpga_adv_task();
 	}
 
 	return 0;
