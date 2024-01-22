@@ -111,8 +111,13 @@ bool handle_force_fpga_offline(uint8_t rhport, tusb_control_request_t const* req
  */
 bool handle_honor_fpga_adv(uint8_t rhport, tusb_control_request_t const* request)
 {
-	honor_fpga_adv();
 	return tud_control_xfer(rhport, request, NULL, 0);
+}
+
+bool handle_honor_fpga_adv_finish(uint8_t rhport, tusb_control_request_t const* request)
+{
+	honor_fpga_adv();
+	return true;
 }
 
 
@@ -201,6 +206,19 @@ static bool handle_vendor_request_complete(uint8_t rhport, tusb_control_request_
 
 }
 
+/**
+ * Called when a vendor request is finished.
+ */
+static bool handle_vendor_request_finish(uint8_t rhport, tusb_control_request_t const * request)
+{
+	switch (request->bRequest) {
+		case VENDOR_REQUEST_HONOR_FPGA_ADV:
+			return handle_honor_fpga_adv_finish(rhport, request);
+		default:
+			return true;
+	}
+}
+
 
 bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t const * request)
 {
@@ -209,10 +227,11 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_requ
 			return handle_vendor_request_setup(rhport, request);
 		case CONTROL_STAGE_DATA:
 			return handle_vendor_request_complete(rhport, request);
+		case CONTROL_STAGE_ACK:
+			return handle_vendor_request_finish(rhport, request);
 		default:
-			return true;;
+			return true;
 
 	}
-
 
 }
