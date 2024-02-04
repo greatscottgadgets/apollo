@@ -68,7 +68,7 @@ void uart_release_pinmux(void)
  * Configures the UART we'll use for our system console.
  * TODO: support more configuration (parity, stop, etc.)
  */
-void uart_init(bool configure_pinmux, unsigned long baudrate)
+void uart_initialize(bool configure_pinmux, unsigned long baudrate)
 {
 	// Disable the SERCOM before configuring it, to 1) ensure we're not transacting
 	// during configuration; and 2) as many of the registers are R/O when the SERCOM is enabled.
