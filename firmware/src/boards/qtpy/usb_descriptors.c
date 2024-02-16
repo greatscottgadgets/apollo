@@ -126,7 +126,7 @@ static uint16_t _desc_str[34];
  */
 static uint16_t *get_serial_number_string_descriptor(void)
 {
-	const unsigned serial_number_chars = 32;
+	const unsigned serial_number_chars = 26;
 
 	int count = 0;
 
@@ -136,22 +136,33 @@ static uint16_t *get_serial_number_string_descriptor(void)
 
 	// Documented in section 9.3.3 of D21 datasheet, page 32 (rev G), but no header file,
 	// these are not contiguous addresses.
-	const uint32_t	*ser[4] = {
-		(uint32_t *)0x0080A00C,
-		(uint32_t *)0x0080A040,
-		(uint32_t *)0x0080A044,
-		(uint32_t *)0x0080A048
-	};
+	uint32_t ser[5];
+	ser[0] = *(uint32_t *)0x0080A00C;
+	ser[1] = *(uint32_t *)0x0080A040;
+	ser[2] = *(uint32_t *)0x0080A044;
+	ser[3] = *(uint32_t *)0x0080A048;
+	ser[4] = 0;
+
+	uint8_t *tmp = (uint8_t *)ser;
 
 	// Populate the length and string type, as these are the first two bytes
 	// of our descriptor...
-	_desc_str[count++] = (TUSB_DESC_STRING << 8 ) | ((serial_number_chars * 2) + 2);;
+	_desc_str[count++] = (TUSB_DESC_STRING << 8 ) | ((serial_number_chars * 2) + 2);
 
-	// ... and convert our serial number into hex.
-	for (unsigned i = 0; i < 32; ++i) {
-		uint32_t word  = *ser[i / 8];
-		uint32_t hexit = word >> ((i % 8) * 4);
-		_desc_str[count++] = "0123456789abcdef"[hexit & 0xF];
+	// ... and convert our serial number into Base32.
+	int buffer = tmp[0];
+	int next = 1;
+	int bits_left = 8;
+
+	for (unsigned i = 0; i < serial_number_chars; ++i) {
+		if (bits_left < 5) {
+			buffer <<= 8;
+			buffer |= tmp[next++] & 0xff;
+			bits_left += 8;
+		}
+		bits_left -= 5;
+		int index = (buffer >> bits_left) & 0x1f;
+		_desc_str[count++] = index + (index < 26 ? 'A' : '2');  // RFC 4648 Base32
 	}
 
 	return _desc_str;
