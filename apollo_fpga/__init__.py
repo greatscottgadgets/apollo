@@ -76,38 +76,30 @@ class ApolloDebugger:
         """ Sets up a connection to the debugger. """
 
         # Try to create a connection to our Apollo debug firmware.
-        for vid, pid in self.APOLLO_USB_IDS:
-            device = usb.core.find(idVendor=vid, idProduct=pid)
-            if device is not None:
-                break
+        device = self._find_device(self.APOLLO_USB_IDS)
 
-        # If no Apollo VID/PID is found but a gateware VID/PID is, we request the gateware
-        # to liberate the USB port. In devices with a shared port, this effectively hands off 
-        # the USB port to Apollo.
-        find_again = False
+        # If Apollo VID/PID is not found, try to find a gateware VID/PID with a valid Apollo stub
+        # interface. If found, request the gateware to liberate the USB port. In devices with a 
+        # shared port, this effectively hands off the USB port to Apollo.
         if device is None:
-            for vid, pid in self.LUNA_USB_IDS:
-                fpga_device = usb.core.find(idVendor=vid, idProduct=pid)
-                if fpga_device is None:
-                    continue
-                for cfg in fpga_device:
-                    intf = usb.util.find_descriptor(cfg, bInterfaceClass=0xFF, bInterfaceSubClass=0x00)
-                    if intf is None:
-                        continue
-                    find_again = self._request_handoff_to_apollo(fpga_device, intf.bInterfaceNumber)
-                    break
 
-        # If we requested a handoff, retry the connection to Apollo debug firmware
-        if find_again:
-            time.sleep(2)  # wait for Apollo enumeration
-            for vid, pid in self.APOLLO_USB_IDS:
-                device = usb.core.find(idVendor=vid, idProduct=pid)
-                if device is not None:
-                    break
+            # First, find the candidate device...
+            fpga_device = self._find_device(self.LUNA_USB_IDS, custom_match=self._device_has_stub_iface)
+            if fpga_device is None:
+                raise DebuggerNotFound("No Apollo or valid LUNA device found. "
+                    "The LUNA_USB_IDS environment variable can be used to add custom VID:PID pairs.")
 
-        # If we couldn't find an Apollo device, bail out.
-        if device is None:
-            raise DebuggerNotFound()
+            # ... and now request a USB handoff to Apollo
+            stub_if = self._device_has_stub_iface(fpga_device, return_iface=True)
+            retry, err_msg = self._request_handoff_to_apollo(fpga_device, stub_if.bInterfaceNumber)
+            if not retry:
+                raise DebuggerNotFound(f"Handoff request failed: {err_msg}")
+
+            # Wait for Apollo to enumerate and try again
+            time.sleep(2) 
+            device = self._find_device(self.APOLLO_USB_IDS)
+            if device is None:
+                raise DebuggerNotFound("Handoff was requested, but Apollo is not available")
 
         self.device = device
         self.major, self.minor = self.get_hardware_revision()
@@ -123,6 +115,25 @@ class ApolloDebugger:
             self.spi   = DebugSPIConnection(self)
             self.registers = self.spi
 
+    @staticmethod
+    def _find_device(ids, custom_match=None):
+        for vid, pid in ids:
+            device = usb.core.find(idVendor=vid, idProduct=pid, custom_match=custom_match)
+            if device is not None:
+                return device
+        return None
+
+    @staticmethod
+    def _device_has_stub_iface(device, return_iface=False):
+        """ Checks if a device has an Apollo stub interface present.
+
+        Optionally return the interface itself.
+        """
+        for cfg in device:
+            stub_if = usb.util.find_descriptor(cfg, bInterfaceClass=0xFF, bInterfaceSubClass=0x00)
+            if stub_if is not None:
+                return stub_if if return_iface else True
+        return None if return_iface else False
 
     @staticmethod
     def _request_handoff_to_apollo(device, intf_number):
@@ -131,9 +142,9 @@ class ApolloDebugger:
         request_type = usb.ENDPOINT_OUT | usb.RECIP_INTERFACE | usb.TYPE_VENDOR
         try:
             device.ctrl_transfer(request_type, REQUEST_APOLLO_ADV_STOP, wIndex=intf_number, timeout=5000)
-        except usb.USBError:
-            return False
-        return True
+        except usb.USBError as e:
+            return False, e.strerror
+        return True, ""
 
 
     def detect_connected_version(self):
