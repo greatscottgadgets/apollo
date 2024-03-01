@@ -107,9 +107,10 @@ void fpga_adv_init(void)
 void fpga_adv_task(void)
 {
 #ifdef BOARD_HAS_USB_SWITCH
-	// Take over USB after timeout
-	if (board_millis() - last_phy_adv < TIMEOUT) return;
-	take_over_usb();
+        // Take over USB after timeout
+	if (board_millis() - last_phy_adv >= TIMEOUT) {
+		take_over_usb();
+	}
 #endif
 }
 
