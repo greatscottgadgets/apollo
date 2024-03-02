@@ -61,7 +61,7 @@ void console_task(void)
  */
 void tud_cdc_line_coding_cb(uint8_t itf, cdc_line_coding_t const* coding)
 {
-	uart_init(true, coding->bit_rate);
+	uart_initialize(true, coding->bit_rate);
 }
 
 
@@ -72,13 +72,13 @@ void tud_cdc_line_coding_cb(uint8_t itf, cdc_line_coding_t const* coding)
 void tud_cdc_rx_wanted_cb(uint8_t itf, char wanted_char)
 {
 	if (!uart_active) {
-		uart_init(true, 115200);
+		uart_initialize(true, 115200);
 	}
 }
 
 void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts)
 {
 	if (!uart_active) {
-		uart_init(true, 115200);
+		uart_initialize(true, 115200);
 	}
 }

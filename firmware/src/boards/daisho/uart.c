@@ -18,7 +18,7 @@
  * @param configure_pinmux If true, the pinmux will be configured for UART use during init.
  * @param baudrate The baud rate to apply, in symbols/second.
  */
-void uart_init(bool configure_pinmux, unsigned long baudrate)
+void uart_initialize(bool configure_pinmux, unsigned long baudrate)
 {
 }
 

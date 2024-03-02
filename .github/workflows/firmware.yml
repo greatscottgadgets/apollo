@@ -11,6 +11,7 @@ jobs:
         - 'cynthion'
         - 'samd11_xplained'
         - 'qtpy'
+        - 'raspberry_pi_pico'
     steps:
     - name: Install ARM GCC
       uses: carlosperate/arm-none-eabi-gcc-action@v1
