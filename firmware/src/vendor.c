@@ -19,6 +19,8 @@
 #include "fpga.h"
 //#include "selftest.h"
 #include "debug_spi.h"
+#include "usb_switch.h"
+#include "fpga_adv.h"
 
 
 // Supported vendor requests.
@@ -44,6 +46,7 @@ enum {
 	// General programming requests.
 	VENDOR_REQUEST_TRIGGER_RECONFIGURATION = 0xc0,
 	VENDOR_REQUEST_FORCE_FPGA_OFFLINE      = 0xc1,
+	VENDOR_REQUEST_HONOR_FPGA_ADV          = 0xc2,
 
 
 	//
@@ -103,6 +106,21 @@ bool handle_force_fpga_offline(uint8_t rhport, tusb_control_request_t const* req
 }
 
 
+/**
+ * Request Apollo to honor FPGA advertisement messages.
+ */
+bool handle_honor_fpga_adv(uint8_t rhport, tusb_control_request_t const* request)
+{
+	return tud_control_xfer(rhport, request, NULL, 0);
+}
+
+bool handle_honor_fpga_adv_finish(uint8_t rhport, tusb_control_request_t const* request)
+{
+	honor_fpga_adv();
+	return true;
+}
+
+
 
 /**
  * Primary vendor request handler.
@@ -116,6 +134,8 @@ static bool handle_vendor_request_setup(uint8_t rhport, tusb_control_request_t c
 			return handle_trigger_fpga_reconfiguration(rhport, request);
 		case VENDOR_REQUEST_FORCE_FPGA_OFFLINE:
 			return handle_force_fpga_offline(rhport, request);
+		case VENDOR_REQUEST_HONOR_FPGA_ADV:
+			return handle_honor_fpga_adv(rhport, request);
 
 		// JTAG requests
 		case VENDOR_REQUEST_JTAG_CLEAR_OUT_BUFFER:
@@ -186,6 +206,19 @@ static bool handle_vendor_request_complete(uint8_t rhport, tusb_control_request_
 
 }
 
+/**
+ * Called when a vendor request is finished.
+ */
+static bool handle_vendor_request_finish(uint8_t rhport, tusb_control_request_t const * request)
+{
+	switch (request->bRequest) {
+		case VENDOR_REQUEST_HONOR_FPGA_ADV:
+			return handle_honor_fpga_adv_finish(rhport, request);
+		default:
+			return true;
+	}
+}
+
 
 bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_request_t const * request)
 {
@@ -194,10 +227,11 @@ bool tud_vendor_control_xfer_cb(uint8_t rhport, uint8_t stage, tusb_control_requ
 			return handle_vendor_request_setup(rhport, request);
 		case CONTROL_STAGE_DATA:
 			return handle_vendor_request_complete(rhport, request);
+		case CONTROL_STAGE_ACK:
+			return handle_vendor_request_finish(rhport, request);
 		default:
-			return true;;
+			return true;
 
 	}
-
 
 }
