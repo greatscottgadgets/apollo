@@ -26,16 +26,6 @@ static blink_pattern_t blink_pattern = BLINK_IDLE;
 
 
 /**
- * Sets the active LED blink pattern.
- */
-void led_set_blink_pattern(blink_pattern_t pattern)
-{
-    blink_pattern = pattern;
-    leds_off();
-}
-
-
-/**
  * Sets up each of the LEDs for use.
  */
 void led_init(void)
@@ -126,6 +116,24 @@ static void display_led_number(uint8_t number)
 
 
 /**
+ * Sets the active LED blink pattern.
+ */
+void led_set_blink_pattern(blink_pattern_t pattern)
+{
+    blink_pattern = pattern;
+    leds_off();
+    // Values of 0 to 31 should be set immediately as static patterns.
+    if (blink_pattern < 32) {
+      for (int i = 0; i < 5; i++) {
+        if (blink_pattern & (1 << i)) {
+          display_led_number(i);
+        }
+      }
+    }
+}
+
+
+/**
  * Task that handles blinking the heartbeat LED.
  */
 void heartbeat_task(void)
@@ -133,6 +141,11 @@ void heartbeat_task(void)
   static uint32_t start_ms = 0;
   static uint8_t active_led = 0;
   static bool count_up = true;
+
+  // Values of 0 to 31 define static patterns only.
+  if (blink_pattern < 32) {
+    return;
+  }
 
   // Blink every interval ms
   if ( board_millis() - start_ms < blink_pattern) return; // not enough time
