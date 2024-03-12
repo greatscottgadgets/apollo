@@ -2,6 +2,8 @@
 # Build specifics for LUNA hardware.
 #
 
+SOURCES += $(wildcard src/mcu/samd11/*.c)
+
 #INC += \
 #	$(TOP)/hw/mcu/microchip/samd/asf4/samd51/hpl/tc/ \
 #
