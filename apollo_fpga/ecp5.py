@@ -189,6 +189,9 @@ class ECP5Programmer:
         READ_ID        = 0x90
         READ_JEDEC_ID  = 0x9F
 
+        # Read the chip's unique ID.
+        READ_UID       = 0x4B
+
         # Erase the full flash chip.
         CHIP_ERASE     = 0xC7
 
@@ -571,6 +574,22 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         full_id      = int.from_bytes(raw_id[1:], byteorder='big')
 
         return manufacturer, full_id
+
+
+    def read_flash_uid(self):
+        """ Attempts to read the FPGA's configuration flash's unique ID over JTAG.
+
+        Returns a 64-bit ID value.
+        """
+
+        # Take control of the FPGA's configuration SPI lines.
+        self._enter_background_spi()
+
+        # Issue a READ UID request, then receive 4 dummy bytes and 8 bytes of UID data.
+        uid_bytes = self._background_spi_transfer([self.FlashOpcode.READ_UID] + [0] * 12)
+
+        # Construct the UID from the relevant bytes of the response.
+        return int.from_bytes(uid_bytes[5:17], byteorder='little')
 
 
     def _flash_wait_for_completion(self):
