@@ -1,20 +1,41 @@
-[tool.poetry]
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
 name = "apollo-fpga"
 version = "0.0.5"
+authors = [
+    {name = "Great Scott Gadgets", email = "dev@greatscottgadgets.com"}
+]
+license = { text = "BSD" }
 description = "host tools for Apollo FPGA debug controllers"
-authors = ["Great Scott Gadgets <info@greatscottgadgets.com>"]
-license = "BSD"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    'Programming Language :: Python',
+    'Development Status :: 5 - Production/Stable',
+    'Natural Language :: English',
+    'Environment :: Console',
+    'Environment :: Plugins',
+    'Intended Audience :: Developers',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: BSD License',
+    'Operating System :: OS Independent',
+    'Topic :: Scientific/Engineering',
+    'Topic :: Security',
+]
+dependencies = [
+    "pyusb>1.1.1",
+    "pyvcd>=0.2.4",
+    "prompt-toolkit>3.0.16",
+]
 
-[tool.poetry.dependencies]
-python = "^3.7"
-pyusb = "^1.1.1"
-pyvcd = "^0.2.4"
+[project.urls]
+repository = "https://github.com/greatscottgadgets/apollo"
 
-[tool.poetry.dev-dependencies]
+[tool.setuptools]
+packages = ["apollo_fpga"]
 
-[tool.poetry.scripts]
-apollo = 'apollo_fpga.commands.cli:main'
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[project.scripts]
+apollo = "apollo_fpga.commands.cli:main"
