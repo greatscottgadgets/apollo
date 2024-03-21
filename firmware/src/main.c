@@ -32,6 +32,7 @@
 #include <bsp/board_api.h>
 #include <apollo_board.h>
 
+#include "board_rev.h"
 #include "led.h"
 #include "jtag.h"
 #include "fpga.h"
@@ -49,6 +50,7 @@
 int main(void)
 {
 	board_init();
+	detect_hardware_revision();
 	tusb_init();
 
 	fpga_io_init();
