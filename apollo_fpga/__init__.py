@@ -38,6 +38,10 @@ class ApolloDebugger:
     APOLLO_USB_IDS = [(0x1d50, 0x615c)]
     LUNA_USB_IDS   = [(0x1d50, 0x615b)]
 
+    # Add pid.codes VID/PID pairs with PID from 0x0001 to 0x0010
+    for i in range(16):
+        LUNA_USB_IDS += [(0x1209, i+1)]
+
     # If we have a LUNA_USB_IDS variable, we can use it to find the LUNA device.
     if os.getenv("LUNA_USB_IDS"):
         LUNA_USB_IDS += [tuple([int(x, 16) for x in os.getenv("LUNA_USB_IDS").split(":")])]

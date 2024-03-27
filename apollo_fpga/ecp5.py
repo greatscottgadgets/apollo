@@ -1260,3 +1260,41 @@ class ECP5_JTAGDebugSPIConnection(DebugSPIConnection):
             # Bit-reverse the data we capture in response, compensating for MSB-first ordering.
             response = [reverse_bits(b) for b in bytes(response)]
             return bytes(response)
+
+
+class ECP5FlashBridgeProgrammer(ECP5CommandBasedProgrammer):
+    """ Class that enables programming the configuration SPI flash using the FPGA as 
+    a SPI bridge (needs companion gateware).
+
+    This programmer is only used for flashing the SPI memory.
+    """
+
+    # Only useful for flashing operation
+
+    def __init__(self, bridge, *args, **kwargs):
+        """ Creates a new ECP5 Flash Bridge Programmer interface.
+
+        Parameters:
+            bridge -- The connection object to operate with the gateware bridge.
+
+        See ECP5Programmer.__init__ for additional accepted arguments.
+        """
+
+        # Store a reference to our SPI bridge.
+        self.bridge = bridge
+
+        # And run the parent configuration.
+        super(ECP5FlashBridgeProgrammer, self).__init__(*args, **kwargs)
+
+    def trigger_reconfiguration(self):
+        """ Triggers the target FPGA to reconfigure itself from its flash chip. """
+        return self.bridge.trigger_reconfiguration()
+    
+    def _enter_background_spi(self, reset_flash=True):
+        """ Places the FPGA into background SPI mode; for e.g. programming a connected flash. """
+        pass
+    
+    def _background_spi_transfer(self, data, reverse=False, ignore_response=False):
+        """ Performs a SPI transfer, targeting the configuration flash."""
+        return self.bridge.transfer(data)
+    

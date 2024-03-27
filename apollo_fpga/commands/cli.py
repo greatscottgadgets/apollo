@@ -16,11 +16,22 @@ import errno
 import logging
 import argparse
 from collections import namedtuple
+import xdg.BaseDirectory
+from functools import partial
 
 from apollo_fpga import ApolloDebugger
 from apollo_fpga.jtag import JTAGChain, JTAGPatternError
-from apollo_fpga.ecp5 import ECP5_JTAGProgrammer
+from apollo_fpga.ecp5 import ECP5_JTAGProgrammer, ECP5FlashBridgeProgrammer
 from apollo_fpga.onboard_jtag import *
+
+try:
+    from amaranth.build.run import LocalBuildProducts
+    from luna.gateware.platform import get_appropriate_platform
+    from apollo_fpga.gateware.flash_bridge import FlashBridge, FlashBridgeConnection
+except ImportError:
+    flash_fast_enable = False
+else:
+    flash_fast_enable = True
 
 
 #
@@ -161,6 +172,44 @@ def program_flash(device, args):
         programmer.flash(bitstream, offset=offset)
 
 
+
+def program_flash_fast(device, args, *, platform):
+
+    # Retrieve a FlashBridge cached bitstream or build it
+    plan = platform.build(FlashBridge(), do_build=False)
+    cache_dir = os.path.join(
+        xdg.BaseDirectory.save_cache_path('apollo'), 'build', plan.digest().hex()
+    )
+    if os.path.exists(cache_dir):
+        products = LocalBuildProducts(cache_dir)
+    else:
+        products = plan.execute_local(cache_dir)
+
+    # Configure flash bridge
+    with device.jtag as jtag:
+        programmer = device.create_jtag_programmer(jtag)
+        programmer.configure(products.get("top.bit"))
+
+    # Let the LUNA gateware take over in devices with shared USB port
+    device.honor_fpga_adv()
+
+    # Wait for flash bridge enumeration
+    time.sleep(2)
+
+    # Program SPI flash memory using the configured bridge
+    bridge = FlashBridgeConnection()
+    programmer = ECP5FlashBridgeProgrammer(bridge=bridge)
+    with open(args.file, "rb") as f:
+        bitstream = f.read()
+    programmer.flash(bitstream)
+
+
+def program_flash_fast_unavailable(device, args):
+    logging.error("`flash-fast` requires the `luna` package in the Python environment.\n"
+                  "Install `luna` or use `flash` instead.")
+    sys.exit(-1)
+
+
 def read_back_flash(device, args):
     ensure_unconfigured(device)
 
@@ -298,7 +347,9 @@ def main():
         Command("flash-erase", handler=erase_flash,
                 help="Erases the contents of the FPGA's flash memory."),
         Command("flash-program", alias=["flash"], args=["file", "--offset"], handler=program_flash,
-                help="Programs the target bitstream onto the attached FPGA."),
+                help="Programs the target bitstream onto the FPGA's configuration flash."),
+        Command("flash-fast", args=["file", "--offset"], handler=program_flash_fast,
+                help="Programs a bitstream onto the FPGA's configuration flash using a SPI bridge"),
         Command("flash-read", args=["file", "--offset", "--length"], handler=read_back_flash,
                 help="Reads the contents of the attached FPGA's configuration flash."),
 
@@ -345,6 +396,13 @@ def main():
     if not args.command:
         parser.print_help()
         return
+    
+    # Add a special case where the platform information is needed
+    if args.command == "flash-fast":
+        if flash_fast_enable:
+            args.func = partial(program_flash_fast, platform=get_appropriate_platform())
+        else:
+            args.func = program_flash_fast_unavailable
     
     device = ApolloDebugger()
 
