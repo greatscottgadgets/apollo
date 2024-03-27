@@ -29,6 +29,7 @@ dependencies = [
     "pyusb>1.1.1",
     "pyvcd>=0.2.4",
     "prompt-toolkit>3.0.16",
+    "pyxdg>=0.27",
 ]
 
 [project.urls]
