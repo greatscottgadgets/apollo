@@ -12,10 +12,16 @@
 #include <hal/include/hal_gpio.h>
 #include <stdbool.h>
 
-#define BOARD_HAS_PROGRAM_BUTTON
-
 #if (((_BOARD_REVISION_MAJOR_ == 0) && (_BOARD_REVISION_MINOR_ >= 6)) || (_BOARD_REVISION_MAJOR_ == 1))
 #define BOARD_HAS_USB_SWITCH
+/*
+ * Hardware revisions r0.3 through r0.5 have a button, but its GPIO pin is
+ * shared with LED_A.  We never needed to use the button on those revisions
+ * because they effectively had a dedicated USB port for Apollo.  Sharing the
+ * pin is tricky, but we'll probably never need to implement that.  Unless and
+ * until we implement it, pretend that the button does not exist.
+ */
+#define BOARD_HAS_PROGRAM_BUTTON
 #endif
 
 /**
