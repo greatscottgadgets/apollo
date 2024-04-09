@@ -38,11 +38,12 @@ tusb_desc_device_t const desc_device =
 	.bDescriptorType    = TUSB_DESC_DEVICE,
 	.bcdUSB             = 0x0200,
 
-	// Use Interface Association Descriptor (IAD) for CDC
-	// As required by USB Specs IAD's subclass must be common class (2) and protocol must be IAD (1)
-	.bDeviceClass       = TUSB_CLASS_MISC,
-	.bDeviceSubClass    = MISC_SUBCLASS_COMMON,
-	.bDeviceProtocol    = MISC_PROTOCOL_IAD,
+	// We use bDeviceClass = 0 to indicate that we're a composite device.
+	// Another option is to use the Interface Association Descriptor (IAD) method, 
+	// but this requires extra descriptors.
+	.bDeviceClass       = 0,
+	.bDeviceSubClass    = 0,
+	.bDeviceProtocol    = 0,
 
 	.bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
 
@@ -185,20 +186,26 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
 	// Otherwise, take the ASCII string provided and encode it as UTF-16.
 	else {
 
-	if ( !(index < sizeof(string_desc_arr)/sizeof(string_desc_arr[0])) ) {
-		return NULL;
-	}
+		const char* str;
+		if (index == 0xee) {
+			// Microsoft OS 1.0 String Descriptor
+			str = "MSFT100\xee\x01";
+		} else {
+			if ( !(index < sizeof(string_desc_arr)/sizeof(string_desc_arr[0])) ) {
+				return NULL;
+			}
 
-	const char* str = string_desc_arr[index];
+			str = string_desc_arr[index];
+		}
 
-	// Cap at max char
-	chr_count = strlen(str);
-	if ( chr_count > 31 ) chr_count = 31;
+		// Cap at max char
+		chr_count = strlen(str);
+		if ( chr_count > 31 ) chr_count = 31;
 
-	for(uint8_t i=0; i<chr_count; i++)
-	{
-		_desc_str[1+i] = str[i];
-	}
+		for(uint8_t i=0; i<chr_count; i++)
+		{
+			_desc_str[1+i] = str[i];
+		}
 	}
 
 	// first byte is length (including header), second byte is string type

@@ -131,9 +131,17 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index)
 	{
 		// Convert ASCII string into UTF-16
 
-		if ( !(index < sizeof(string_desc_arr)/sizeof(string_desc_arr[0])) ) return NULL;
+		const char* str;
+		if (index == 0xee) {
+			// Microsoft OS 1.0 String Descriptor
+			str = "MSFT100\xee\x01";
+		} else {
+			if ( !(index < sizeof(string_desc_arr)/sizeof(string_desc_arr[0])) ) {
+				return NULL;
+			}
 
-		const char* str = string_desc_arr[index];
+			str = string_desc_arr[index];
+		}
 
 		// Cap at max char
 		chr_count = strlen(str);
