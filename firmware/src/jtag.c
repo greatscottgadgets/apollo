@@ -20,6 +20,10 @@
 #include "jtag.h"
 #include "uart.h"
 #include "spi.h"
+#include "fpga.h"
+
+#define ISC_ENABLE  0xC6
+#define ISC_DISABLE 0x26
 
 
 // JTAG comms buffers.
@@ -109,6 +113,16 @@ bool handle_jtag_request_set_out_buffer(uint8_t rhport, tusb_control_request_t c
 		return false;
 	}
 
+	// HACK: check the buffer for commands that affect the FPGA configuration state.
+    if (request->wLength == 1) {
+		if (jtag_out_buffer[0] == ISC_ENABLE) {
+			fpga_online = false;
+		}
+		if (jtag_out_buffer[0] == ISC_DISABLE) {
+			fpga_online = true;
+		}
+    }
+
 	// Copy the relevant data into our OUT buffer.
 	return tud_control_xfer(rhport, request, jtag_out_buffer, request->wLength);
 }
@@ -191,7 +205,7 @@ bool handle_jtag_get_state(uint8_t rhport, tusb_control_request_t const* request
  */
 bool handle_jtag_start(uint8_t rhport, tusb_control_request_t const* request)
 {
-	led_set_blink_pattern(BLINK_JTAG_CONNECTED);
+	led_set_pattern(LED_JTAG_CONNECTED);
 	jtag_init();
 
 	return tud_control_xfer(rhport, request, NULL, 0);
@@ -203,7 +217,7 @@ bool handle_jtag_start(uint8_t rhport, tusb_control_request_t const* request)
  */
 bool handle_jtag_stop(uint8_t rhport, tusb_control_request_t const* request)
 {
-	led_set_blink_pattern(BLINK_IDLE);
+	led_set_pattern(LED_IDLE);
 	jtag_deinit();
 
 	return tud_control_xfer(rhport, request, NULL, 0);

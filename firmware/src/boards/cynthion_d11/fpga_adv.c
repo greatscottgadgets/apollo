@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <stdbool.h>
 #include "fpga_adv.h"
 #include "usb_switch.h"
 #include "apollo_board.h"
@@ -22,6 +23,9 @@
 // Store the timestamp of the last physical port advertisement
 #define TIMEOUT 100UL
 static uint32_t last_phy_adv = 0;
+
+// Allow deferred switching of the USB port.
+static bool defer_hand_off = false;
 
 // Create a reference to our SERCOM object.
 typedef Sercom sercom_t;
@@ -107,9 +111,12 @@ void fpga_adv_init(void)
 void fpga_adv_task(void)
 {
 #ifdef BOARD_HAS_USB_SWITCH
-        // Take over USB after timeout
-	if (board_millis() - last_phy_adv >= TIMEOUT) {
+    // Take over USB after timeout
+	if (fpga_requesting_port() == false) {
 		take_over_usb();
+	} else if (defer_hand_off) {
+		hand_off_usb();
+		defer_hand_off = false;
 	}
 #endif
 }
@@ -120,9 +127,23 @@ void fpga_adv_task(void)
 void honor_fpga_adv(void)
 {
 #ifdef BOARD_HAS_USB_SWITCH
-	if (board_millis() - last_phy_adv < TIMEOUT) {
+	if (fpga_requesting_port()) {
 		hand_off_usb();
+	} else {
+		defer_hand_off = true;
 	}
+#endif
+}
+
+/**
+ * True if we received an advertisement message within the last time window.
+ */
+bool fpga_requesting_port(void)
+{
+#ifdef BOARD_HAS_USB_SWITCH
+	return board_millis() - last_phy_adv < TIMEOUT;
+#else
+	return false;
 #endif
 }
 

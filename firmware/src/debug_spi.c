@@ -200,7 +200,7 @@ bool handle_take_configuration_spi(uint8_t rhport, tusb_control_request_t const*
 #endif
 
 	// ... and set a blink pattern accordingly.
-	led_set_blink_pattern(BLINK_FLASH_CONNECTED);
+	led_set_pattern(LED_FLASH_CONNECTED);
 	return tud_control_xfer(rhport, request, NULL, 0);
 }
 
@@ -217,7 +217,7 @@ bool handle_release_configuration_spi(uint8_t rhport, tusb_control_request_t con
 	gpio_set_pin_pull_mode(PIN_FLASH_CS, GPIO_PULL_UP);
 #endif
 
-	led_set_blink_pattern(BLINK_IDLE);
+	led_set_pattern(LED_IDLE);
 
 	return tud_control_xfer(rhport, request, NULL, 0);
 }

@@ -85,7 +85,7 @@ int main(void)
 	while (1) {
 		tud_task(); // tinyusb device task
 		console_task();
-		heartbeat_task();
+		led_task();
 		button_task();
 		fpga_adv_task();
 	}

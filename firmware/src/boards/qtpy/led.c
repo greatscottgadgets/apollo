@@ -22,15 +22,15 @@
 
 
 /** Store the current LED blink pattern. */
-static blink_pattern_t blink_pattern = BLINK_IDLE;
+static led_pattern_t led_pattern = LED_IDLE;
 
 
 /**
- * Sets the active LED blink pattern.
+ * Sets the active LED pattern.
  */
-void led_set_blink_pattern(blink_pattern_t pattern)
+void led_set_pattern(led_pattern_t pattern)
 {
-	blink_pattern = pattern;
+	led_pattern = pattern;
 	leds_off();
 }
 
@@ -105,31 +105,31 @@ static void display_led_number(uint8_t number)
 
 
 /**
- * Task that handles blinking the heartbeat LED.
+ * Task that handles LED updates.
  */
-void heartbeat_task(void)
+void led_task(void)
 {
   static uint32_t start_ms = 0;
   static uint8_t active_led = 0;
   static bool count_up = true;
 
   // Blink every interval ms
-  if ( board_millis() - start_ms < blink_pattern) return; // not enough time
-  start_ms += blink_pattern;
+  if ( board_millis() - start_ms < led_pattern) return; // not enough time
+  start_ms += led_pattern;
 
-  switch (blink_pattern) {
+  switch (led_pattern) {
 
     // Standard blink pattern for when the device is idle.
     // Indicates that the device's JTAG lines are un-pulled.
-    case BLINK_IDLE:
+    case LED_IDLE:
       led_toggle(LED_E);
       break;
 
     // Blink patterns for when the device is being used for JTAG
     // operation. When these are on, the uC is driving the JTAG lines,
     // so the JTAG header probably shouldn't used to drive the lines.
-    case BLINK_JTAG_CONNECTED:
-    case BLINK_JTAG_UPLOADING:
+    case LED_JTAG_CONNECTED:
+    case LED_JTAG_UPLOADING:
 
       // Sweep back and forth.
       if (active_led == 0xFF) {
@@ -148,7 +148,7 @@ void heartbeat_task(void)
 
     // Blink patterns for when the device is being used for SPI flash access.
     // When these are displayed,
-    case BLINK_FLASH_CONNECTED:
+    case LED_FLASH_CONNECTED:
 
       if (active_led == 5) {
         active_led = 0;

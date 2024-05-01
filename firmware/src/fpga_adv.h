@@ -25,5 +25,9 @@ void fpga_adv_task(void);
  */
 void honor_fpga_adv(void);
 
+/**
+ * True if we received an advertisement message within the last time window.
+ */
+bool fpga_requesting_port(void);
 
 #endif

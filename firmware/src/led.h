@@ -22,21 +22,21 @@
  * with different semantic meanings.
  */
 typedef enum {
-  BLINK_IDLE = 500,
-  BLINK_JTAG_CONNECTED = 150,
-  BLINK_JTAG_UPLOADING = 50,
+  LED_IDLE = 500,
+  LED_JTAG_CONNECTED = 150,
+  LED_JTAG_UPLOADING = 50,
 
-  BLINK_FLASH_CONNECTED = 130,
-} blink_pattern_t;
+  LED_FLASH_CONNECTED = 130,
+} led_pattern_t;
 
 
 
 /**
- * Sets the active LED blink pattern.
+ * Sets the active LED pattern.
  *
- * See @ref blink_pattern_t for the meaning of the pattern argument.
+ * See @ref led_pattern_t for the meaning of the pattern argument.
  */
-void led_set_blink_pattern(blink_pattern_t pattern);
+void led_set_pattern(led_pattern_t pattern);
 
 
 /**
@@ -76,8 +76,8 @@ void led_set(led_t led, bool on);
 
 
 /**
- * Task that handles blinking the heartbeat LED.
+ * Task that handles LED updates.
  */
-void heartbeat_task(void);
+void led_task(void);
 
 #endif
