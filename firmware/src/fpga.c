@@ -12,6 +12,7 @@
 
 extern uint8_t jtag_out_buffer[256];
 
+bool fpga_online = false;
 
 /*
  * ECP5 opcode that enables offline configuration mode
@@ -36,4 +37,15 @@ void force_fpga_offline(void)
 	jtag_go_to_state(STATE_RUN_TEST_IDLE);
 	jtag_wait_time(2);
 	jtag_deinit();
+
+	// Update internal state.
+	fpga_online = false;
+}
+
+/*
+ * True after FPGA reconfiguration, false after forcing FPGA offline.
+ */
+bool fpga_is_online(void)
+{
+	return fpga_online;
 }

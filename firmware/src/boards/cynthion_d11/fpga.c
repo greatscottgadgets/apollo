@@ -10,6 +10,7 @@
 
 #include "apollo_board.h"
 #include "jtag.h"
+#include "fpga.h"
 
 
 /*
@@ -68,4 +69,8 @@ void trigger_fpga_reconfiguration(void)
 
 	gpio_set_pin_level(FPGA_PROGRAM, true);
 	gpio_set_pin_direction(FPGA_PROGRAM, GPIO_DIRECTION_IN);
+
+
+	// Update internal state.
+	fpga_online = true;
 }
