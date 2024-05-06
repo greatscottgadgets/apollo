@@ -62,8 +62,43 @@ enum {
 	//
 	// Self-test requests.
 	//
-	VENDOR_REQUEST_GET_RAIL_VOLTAGE      = 0xe0
+	VENDOR_REQUEST_GET_RAIL_VOLTAGE      = 0xe0,
+
+	//
+	// Microsoft WCID descriptor request
+	//
+	VENDOR_REQUEST_GET_MS_DESCRIPTOR     = 0xee,
 };
+
+// Microsoft OS 1.0 descriptor
+uint8_t desc_ms_os_10[] = {
+	// Header: length, bcdVersion, wIndex, bCount, reserved[7]
+	U32_TO_U8S_LE(0x0028),
+	U16_TO_U8S_LE(0x0100),
+	U16_TO_U8S_LE(0x0004),
+	0x01,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+
+	// Compatible ID: bFirstInterfaceNumber, reserved[1], compatibleID[8], subCompatibleID[8], reserved[6]
+	0x02,
+	0x01, 
+	'W', 'I', 'N', 'U', 'S', 'B', 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+};
+
+
+/**
+ * Request Microsoft Windows Compatible ID descriptor.
+*/
+bool handle_get_ms_descriptor(uint8_t rhport, tusb_control_request_t const* request)
+{
+	if (request->wIndex == 0x0004) {
+		return tud_control_xfer(rhport, request, desc_ms_os_10, sizeof(desc_ms_os_10));
+	} else {
+		return false;
+	}
+}
 
 
 /**
@@ -180,6 +215,9 @@ static bool handle_vendor_request_setup(uint8_t rhport, tusb_control_request_t c
 		case VENDOR_REQUEST_GET_RAIL_VOLTAGE:
 			return handle_get_rail_voltage(rhport, request);
 		*/
+
+		case VENDOR_REQUEST_GET_MS_DESCRIPTOR:
+			return handle_get_ms_descriptor(rhport, request);
 
 		default:
 			return false;
