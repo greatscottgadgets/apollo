@@ -22,13 +22,14 @@ add_executable(${PROJECT})
 
 # Example source
 target_sources(${PROJECT} PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/button.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/console.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/debug_spi.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/jtag.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/jtag_tap.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/usb_switch.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/vendor.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/button.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/dfu.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/jtag.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/fpga.c
@@ -37,7 +38,6 @@ target_sources(${PROJECT} PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/led.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/uart.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/usb_descriptors.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/usb_switch.c
   )
 
 # Example include
