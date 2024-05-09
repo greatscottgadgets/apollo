@@ -142,7 +142,7 @@ def configure_fpga(device, args):
         programmer.configure(bitstream)
 
     # Let the LUNA gateware take over in devices with shared USB port
-    device.honor_fpga_adv()
+    device.allow_fpga_takeover_usb()
 
 
 def ensure_unconfigured(device):
@@ -191,7 +191,7 @@ def program_flash_fast(device, args, *, platform):
         programmer.configure(products.get("top.bit"))
 
     # Let the LUNA gateware take over in devices with shared USB port
-    device.honor_fpga_adv()
+    device.allow_fpga_takeover_usb()
 
     # Wait for flash bridge enumeration
     time.sleep(2)
@@ -263,7 +263,7 @@ def reconfigure_fpga(device, args):
     device.soft_reset()
 
     # Let the LUNA gateware take over in devices with shared USB port
-    device.honor_fpga_adv()
+    device.allow_fpga_takeover_usb()
 
 
 def force_fpga_offline(device, args):
