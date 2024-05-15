@@ -24,15 +24,6 @@ from apollo_fpga.jtag import JTAGChain, JTAGPatternError
 from apollo_fpga.ecp5 import ECP5_JTAGProgrammer, ECP5FlashBridgeProgrammer
 from apollo_fpga.onboard_jtag import *
 
-try:
-    from amaranth.build.run import LocalBuildProducts
-    from luna.gateware.platform import get_appropriate_platform
-    from apollo_fpga.gateware.flash_bridge import FlashBridge, FlashBridgeConnection
-except ImportError:
-    flash_fast_enable = False
-else:
-    flash_fast_enable = True
-
 
 #
 # Common JEDEC manufacturer IDs for SPI flash chips.
@@ -173,7 +164,19 @@ def program_flash(device, args):
 
 
 
-def program_flash_fast(device, args, *, platform):
+def program_flash_fast(device, args):
+    # check if flash-fast is supported
+    try:
+        from amaranth.build.run import LocalBuildProducts
+        from luna.gateware.platform import get_appropriate_platform
+        from apollo_fpga.gateware.flash_bridge import FlashBridge, FlashBridgeConnection
+    except ImportError:
+        logging.error("`flash-fast` requires the `luna` package in the Python environment.\n"
+                      "Install `luna` or use `flash` instead.")
+        sys.exit(-1)
+
+    # get platform
+    platform=get_appropriate_platform()
 
     # Retrieve a FlashBridge cached bitstream or build it
     plan = platform.build(FlashBridge(), do_build=False)
@@ -202,12 +205,6 @@ def program_flash_fast(device, args, *, platform):
     with open(args.file, "rb") as f:
         bitstream = f.read()
     programmer.flash(bitstream)
-
-
-def program_flash_fast_unavailable(device, args):
-    logging.error("`flash-fast` requires the `luna` package in the Python environment.\n"
-                  "Install `luna` or use `flash` instead.")
-    sys.exit(-1)
 
 
 def read_back_flash(device, args):
@@ -332,61 +329,62 @@ def jtag_debug_spi_register(device, args):
 Command = namedtuple("Command", ("name", "alias", "args", "help", "handler"),
                      defaults=(None, [], [], None, None))
 
+COMMANDS = [
+    # Info queries
+    Command("info", handler=print_device_info,
+            help="Print device info.", ),
+    Command("jtag-scan", handler=print_chain_info,
+            help="Prints information about devices on the onboard JTAG chain."),
+    Command("flash-info", handler=print_flash_info,
+            help="Prints information about the FPGA's attached configuration flash."),
+
+    # Flash commands
+    Command("flash-erase", handler=erase_flash,
+            help="Erases the contents of the FPGA's flash memory."),
+    Command("flash-program", alias=["flash"], args=["file", "--offset"], handler=program_flash,
+            help="Programs the target bitstream onto the FPGA's configuration flash."),
+    Command("flash-fast", args=["file", "--offset"], handler=program_flash_fast,
+            help="Programs a bitstream onto the FPGA's configuration flash using a SPI bridge"),
+    Command("flash-read", args=["file", "--offset", "--length"], handler=read_back_flash,
+            help="Reads the contents of the attached FPGA's configuration flash."),
+
+    # JTAG commands
+    Command("svf", args=["file"], handler=play_svf_file,
+            help="Plays a given SVF file over JTAG."),
+    Command("configure", args=["file"], handler=configure_fpga,
+            help="Uploads a bitstream to the device's FPGA over JTAG."),
+    Command("reconfigure", handler=reconfigure_fpga,
+            help="Requests the attached ECP5 reconfigure itself from its SPI flash."),
+    Command("force-offline", handler=force_fpga_offline,
+            help="Forces the board's FPGA offline."),
+
+    # SPI debug exchanges
+    Command("spi", args=["bytes"], handler=debug_spi,
+            help="Sends the given list of bytes over debug-SPI, and returns the response."),
+    Command("spi-inv", args=["bytes"], handler=debug_spi_inv,
+            help="Sends the given list of bytes over SPI with inverted CS."),
+    Command("spi-reg", args=["address", "value"], handler=debug_spi_register,
+            help="Reads or writes to a provided register over the debug-SPI."),
+
+    # JTAG-SPI debug exchanges.
+    Command("jtag-spi", args=["bytes"], handler=jtag_debug_spi,
+            help="Sends the given list of bytes over SPI-over-JTAG, and returns the response."),
+    Command("jtag-reg", args=["address", "value"], handler=jtag_debug_spi_register,
+            help="Reads or writes to a provided register of JTAG-tunneled debug SPI."),
+
+    # Misc
+    Command("leds", args=["pattern"], handler=set_led_pattern,
+            help="Sets the specified pattern for the Debug LEDs."),
+]
+
+
 def main():
-    
-    commands = [
-        # Info queries
-        Command("info", handler=print_device_info, 
-                help="Print device info.", ),
-        Command("jtag-scan", handler=print_chain_info,
-                help="Prints information about devices on the onboard JTAG chain."),
-        Command("flash-info", handler=print_flash_info,
-                help="Prints information about the FPGA's attached configuration flash."),
-
-        # Flash commands
-        Command("flash-erase", handler=erase_flash,
-                help="Erases the contents of the FPGA's flash memory."),
-        Command("flash-program", alias=["flash"], args=["file", "--offset"], handler=program_flash,
-                help="Programs the target bitstream onto the FPGA's configuration flash."),
-        Command("flash-fast", args=["file", "--offset"], handler=program_flash_fast,
-                help="Programs a bitstream onto the FPGA's configuration flash using a SPI bridge"),
-        Command("flash-read", args=["file", "--offset", "--length"], handler=read_back_flash,
-                help="Reads the contents of the attached FPGA's configuration flash."),
-
-        # JTAG commands
-        Command("svf", args=["file"], handler=play_svf_file,
-                help="Plays a given SVF file over JTAG."),
-        Command("configure", args=["file"], handler=configure_fpga,
-                help="Uploads a bitstream to the device's FPGA over JTAG."),
-        Command("reconfigure", handler=reconfigure_fpga,
-                help="Requests the attached ECP5 reconfigure itself from its SPI flash."),
-        Command("force-offline", handler=force_fpga_offline,
-                help="Forces the board's FPGA offline."),
-
-        # SPI debug exchanges
-        Command("spi", args=["bytes"], handler=debug_spi,
-                help="Sends the given list of bytes over debug-SPI, and returns the response."),
-        Command("spi-inv", args=["bytes"], handler=debug_spi_inv,
-                help="Sends the given list of bytes over SPI with inverted CS."),
-        Command("spi-reg", args=["address", "value"], handler=debug_spi_register,
-                help="Reads or writes to a provided register over the debug-SPI."),
-
-        # JTAG-SPI debug exchanges.
-        Command("jtag-spi", args=["bytes"], handler=jtag_debug_spi,
-                help="Sends the given list of bytes over SPI-over-JTAG, and returns the response."),
-        Command("jtag-reg", args=["address", "value"], handler=jtag_debug_spi_register,
-                help="Reads or writes to a provided register of JTAG-tunneled debug SPI."),
-
-        # Misc
-        Command("leds", args=["pattern"], handler=set_led_pattern,
-                help="Sets the specified pattern for the Debug LEDs."),
-    ]
 
     # Set up a simple argument parser.
     parser = argparse.ArgumentParser(description="Apollo FPGA Configuration / Debug tool",
             formatter_class=argparse.RawTextHelpFormatter)
     sub_parsers = parser.add_subparsers(dest="command", metavar="command")
-    for command in commands:
+    for command in COMMANDS:
         cmd_parser = sub_parsers.add_parser(command.name, aliases=command.alias, help=command.help)
         cmd_parser.set_defaults(func=command.handler)
         for arg in command.args:
@@ -396,14 +394,7 @@ def main():
     if not args.command:
         parser.print_help()
         return
-    
-    # Add a special case where the platform information is needed
-    if args.command == "flash-fast":
-        if flash_fast_enable:
-            args.func = partial(program_flash_fast, platform=get_appropriate_platform())
-        else:
-            args.func = program_flash_fast_unavailable
-    
+
     device = ApolloDebugger()
 
     # Set up python's logging to act as a simple print, for now.
