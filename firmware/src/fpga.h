@@ -10,6 +10,8 @@
 #ifndef __FPGA_H__
 #define __FPGA_H__
 
+extern bool fpga_online;
+
 /**
  * Sets up the I/O pins needed to configure the FPGA.
  */
@@ -31,5 +33,10 @@ void trigger_fpga_reconfiguration(void);
  * Requests that we force the FPGA to be held in an unconfigured state.
  */
 void force_fpga_offline(void);
+
+/*
+ * True after FPGA reconfiguration, false after forcing FPGA offline.
+ */
+bool fpga_is_online(void);
 
 #endif
