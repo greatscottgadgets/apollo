@@ -257,9 +257,8 @@ class FlashBridge(Elaboratable):
             d.idVendor           = VENDOR_ID
             d.idProduct          = PRODUCT_ID
 
-            d.iManufacturer      = "LUNA"
-            d.iProduct           = "Configuration Flash bridge"
-            d.iSerialNumber      = "no serial"
+            d.iManufacturer      = "Apollo Project"
+            d.iProduct           = "Configuration Flash Bridge"
 
             d.bNumConfigurations = 1
 
