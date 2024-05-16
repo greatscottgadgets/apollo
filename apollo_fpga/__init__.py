@@ -46,10 +46,10 @@ class ApolloDebugger:
     if os.getenv("LUNA_USB_IDS"):
         LUNA_USB_IDS += [tuple([int(x, 16) for x in os.getenv("LUNA_USB_IDS").split(":")])]
 
-    REQUEST_SET_LED_PATTERN    = 0xa1
-    REQUEST_RECONFIGURE        = 0xc0
-    REQUEST_FORCE_FPGA_OFFLINE = 0xc1
-    REQUEST_HONOR_FPGA_ADV     = 0xc2
+    REQUEST_SET_LED_PATTERN         = 0xa1
+    REQUEST_RECONFIGURE             = 0xc0
+    REQUEST_FORCE_FPGA_OFFLINE      = 0xc1
+    REQUEST_ALLOW_FPGA_TAKEOVER_USB = 0xc2
 
     LED_PATTERN_IDLE = 500
     LED_PATTERN_UPLOAD = 50
@@ -294,9 +294,9 @@ class ApolloDebugger:
         """ Resets the target (FPGA/etc) connected to the debug controller. """
         self.out_request(self.REQUEST_FORCE_FPGA_OFFLINE)
 
-    def honor_fpga_adv(self):
-        """ Tell Apollo to honor requests from FPGA_ADV again. Useful after reconfiguration. """
-        self.out_request(self.REQUEST_HONOR_FPGA_ADV)
+    def allow_fpga_takeover_usb(self):
+        """ Request Apollo to allow FPGA takeover of the USB port. Useful after reconfiguration. """
+        self.out_request(self.REQUEST_ALLOW_FPGA_TAKEOVER_USB)
 
     def close(self):
         """ Closes the USB device so it can be reused, possibly by another ApolloDebugger """

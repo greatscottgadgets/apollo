@@ -23,9 +23,9 @@ void fpga_adv_task(void)
 }
 
 /**
- * Honor requests from FPGA_ADV again
+ * Allow FPGA takeover of the USB port
  */
-void honor_fpga_adv(void)
+void allow_fpga_takeover_usb(void)
 {
 }
 

@@ -122,9 +122,9 @@ void fpga_adv_task(void)
 }
 
 /**
- * Honor requests from FPGA_ADV again
+ * Allow FPGA takeover of the USB port
  */
-void honor_fpga_adv(void)
+void allow_fpga_takeover_usb(void)
 {
 #ifdef BOARD_HAS_USB_SWITCH
 	if (fpga_requesting_port()) {
