@@ -240,7 +240,7 @@ class FlashBridgeSubmodule(Elaboratable):
 
 class FlashBridge(Elaboratable):
 
-    def create_descriptors(self):
+    def create_descriptors(self, sharing):
         """ Create the descriptors we want to use for our device. """
 
         descriptors = DeviceDescriptorCollection()
@@ -277,6 +277,13 @@ class FlashBridge(Elaboratable):
                     e.bEndpointAddress = 0x80 | BULK_ENDPOINT_NUMBER
                     e.wMaxPacketSize   = MAX_BULK_PACKET_SIZE
 
+            # If sharing the port, add the Apollo stub interface.
+            if sharing is not None:
+                with c.InterfaceDescriptor() as i:
+                    i.bInterfaceNumber = 1
+                    i.bInterfaceClass = 0xFF
+                    i.bInterfaceSubclass = 0x00
+
         return descriptors
 
     def elaborate(self, platform):
@@ -286,15 +293,24 @@ class FlashBridge(Elaboratable):
         m.submodules.car = platform.clock_domain_generator()
 
         # Create our USB device interface...
-        ulpi = platform.request(platform.default_usb_connection)
+        phy_name = platform.default_usb_connection
+        ulpi = platform.request(phy_name)
         m.submodules.usb = usb = USBDevice(bus=ulpi)
 
+        # Check how the port is shared with Apollo.
+        sharing = platform.apollo_port_sharing(phy_name)
+
         # Add our standard control endpoint to the device.
-        descriptors = self.create_descriptors()
+        descriptors = self.create_descriptors(sharing)
         control_ep = usb.add_standard_control_endpoint(descriptors)
 
         # Add our vendor request handler to the control endpoint.
         control_ep.add_request_handler(FlashBridgeRequestHandler(0))
+
+        # If needed, create an advertiser and add its request handler.
+        if sharing == "advertising":
+            adv = m.submodules.adv = ApolloAdvertiser()
+            control_ep.add_request_handler(adv.default_request_handler(1))
 
         # Add bridge submodule and input/output stream endpoints to our device.
         m.submodules.bridge = bridge = FlashBridgeSubmodule(BULK_ENDPOINT_NUMBER)
