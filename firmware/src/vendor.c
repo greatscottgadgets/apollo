@@ -7,7 +7,7 @@
  *
  * This file is part of LUNA.
  *
- * Copyright (c) 2019-2020 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2019-2024 Great Scott Gadgets <info@greatscottgadgets.com>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -22,11 +22,16 @@
 #include "usb_switch.h"
 #include "fpga_adv.h"
 
+#define USB_API_MAJOR 1
+#define USB_API_MINOR 0
+
 
 // Supported vendor requests.
 enum {
-	VENDOR_REQUEST_GET_ID          = 0xa0,
-	VENDOR_REQUEST_SET_LED_PATTERN = 0xa1,
+	VENDOR_REQUEST_GET_ID                  = 0xa0,
+	VENDOR_REQUEST_SET_LED_PATTERN         = 0xa1,
+	VENDOR_REQUEST_GET_FIRMWARE_VERSION    = 0xa2,
+	VENDOR_REQUEST_GET_USB_API_VERSION     = 0xa3,
 
 	//
 	// JTAG requests.
@@ -58,16 +63,15 @@ enum {
 	VENDOR_REQUEST_TAKE_FLASH_LINES        = 0x53,
 	VENDOR_REQUEST_RELEASE_FLASH_LINES     = 0x54,
 
-
 	//
 	// Self-test requests.
 	//
-	VENDOR_REQUEST_GET_RAIL_VOLTAGE      = 0xe0,
+	VENDOR_REQUEST_GET_RAIL_VOLTAGE        = 0xe0,
 
 	//
 	// Microsoft WCID descriptor request
 	//
-	VENDOR_REQUEST_GET_MS_DESCRIPTOR     = 0xee,
+	VENDOR_REQUEST_GET_MS_DESCRIPTOR       = 0xee,
 };
 
 // Microsoft OS 1.0 descriptor
@@ -108,6 +112,26 @@ bool handle_get_id_request(uint8_t rhport, tusb_control_request_t const* request
 {
 	static char description[] = "Apollo Debug Module";
 	return tud_control_xfer(rhport, request, description, sizeof(description));
+}
+
+
+/**
+ * Request firmware version string.
+ */
+bool handle_get_firmware_version_request(uint8_t rhport, tusb_control_request_t const* request)
+{
+	static char version[] = VERSION_STRING;
+	return tud_control_xfer(rhport, request, version, sizeof(version));
+}
+
+
+/**
+ * Request USB API version.
+ */
+bool handle_get_usb_api_version_request(uint8_t rhport, tusb_control_request_t const* request)
+{
+	static char usb_api[2] = {USB_API_MAJOR, USB_API_MINOR};
+	return tud_control_xfer(rhport, request, usb_api, sizeof(usb_api));
 }
 
 
@@ -165,6 +189,10 @@ static bool handle_vendor_request_setup(uint8_t rhport, tusb_control_request_t c
 	switch(request->bRequest) {
 		case VENDOR_REQUEST_GET_ID:
 			return handle_get_id_request(rhport, request);
+		case VENDOR_REQUEST_GET_FIRMWARE_VERSION:
+			return handle_get_firmware_version_request(rhport, request);
+		case VENDOR_REQUEST_GET_USB_API_VERSION:
+			return handle_get_usb_api_version_request(rhport, request);
 		case VENDOR_REQUEST_TRIGGER_RECONFIGURATION:
 			return handle_trigger_fpga_reconfiguration(rhport, request);
 		case VENDOR_REQUEST_FORCE_FPGA_OFFLINE:

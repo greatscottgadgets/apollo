@@ -2,6 +2,8 @@
 # Apollo debug controller firmware
 #
 
+VERSION_STRING ?= $(shell git describe --abbrev=7 --dirty --always --tags)
+
 # Ensure that a APOLLO_BOARD is selected.
 ifeq ($(APOLLO_BOARD), )
 	BOARD:=$(error You need to specify an APOLLO_BOARD as a make variable (e.g. APOLLO_BOARD=cynthion)!)
@@ -61,6 +63,7 @@ CFLAGS += \
 	-fstrict-volatile-bitfields \
 	-D_BOARD_REVISION_MAJOR_=$(BOARD_REVISION_MAJOR) \
 	-D_BOARD_REVISION_MINOR_=$(BOARD_REVISION_MINOR) \
+	-D VERSION_STRING=\"$(VERSION_STRING)\" \
 	-g
 
 INC += \

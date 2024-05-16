@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 #
-# This file is part of LUNA
+# This file is part of Apollo.
 #
-# Copyright (c) 2020 Great Scott Gadgets <info@greatscottgadgets.com>
+# Copyright (c) 2020-2024 Great Scott Gadgets <info@greatscottgadgets.com>
 # SPDX-License-Identifier: BSD-3-Clause
 
 from __future__ import print_function
@@ -81,7 +81,9 @@ def print_device_info(device, args):
 
     logging.info(f"Detected a {device.get_compatibility_string()} device!")
     logging.info(f"\tHardware: {device.get_hardware_name()}")
-    logging.info(f"\tSerial number: {device.serial_number}\n")
+    logging.info(f"\tSerial number: {device.serial_number}")
+    logging.info(f"\tFirmware version: {device.get_firmware_version()}")
+    logging.info(f"\tUSB API version: {device.get_usb_api_version_string()}")
 
 
 def print_chain_info(device, args):
