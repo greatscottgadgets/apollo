@@ -1,5 +1,5 @@
 #
-# This file is part of LUNA.
+# This file is part of Apollo.
 #
 # Copyright (c) 2023 Great Scott Gadgets <info@greatscottgadgets.com>
 # SPDX-License-Identifier: BSD-3-Clause
@@ -64,6 +64,10 @@ class ApolloAdvertiserRequestHandler(USBRequestHandler):
     
     Implements default vendor requests related to ApolloAdvertiser.
     """
+
+    """ The bInterfaceProtocol version supported by this request handler. """
+    PROTOCOL_VERSION = 0x00
+
     REQUEST_APOLLO_ADV_STOP = 0xF0
 
     def __init__(self, if_number, stop_pin):

@@ -1,5 +1,5 @@
 #
-# This file is part of LUNA.
+# This file is part of Apollo.
 #
 # Copyright (c) 2023 Great Scott Gadgets <info@greatscottgadgets.com>
 # SPDX-License-Identifier: BSD-3-Clause
@@ -17,6 +17,8 @@ from luna.usb2                        import USBDevice, USBStreamInEndpoint, USB
 
 from usb_protocol.types               import USBRequestType, USBRequestRecipient
 from usb_protocol.emitters            import DeviceDescriptorCollection
+
+from .advertiser                      import ApolloAdvertiser, ApolloAdvertiserRequestHandler
 
 VENDOR_ID  = 0x1209
 PRODUCT_ID = 0x000F
@@ -255,9 +257,8 @@ class FlashBridge(Elaboratable):
             d.idVendor           = VENDOR_ID
             d.idProduct          = PRODUCT_ID
 
-            d.iManufacturer      = "LUNA"
-            d.iProduct           = "Configuration Flash bridge"
-            d.iSerialNumber      = "no serial"
+            d.iManufacturer      = "Apollo Project"
+            d.iProduct           = "Configuration Flash Bridge"
 
             d.bNumConfigurations = 1
 
@@ -268,6 +269,7 @@ class FlashBridge(Elaboratable):
                 i.bInterfaceNumber = 0
                 i.bInterfaceClass = 0xFF
                 i.bInterfaceSubclass = 0x01
+                i.bInterfaceProtocol = 0x00
 
                 with i.EndpointDescriptor() as e:
                     e.bEndpointAddress = BULK_ENDPOINT_NUMBER
@@ -283,6 +285,7 @@ class FlashBridge(Elaboratable):
                     i.bInterfaceNumber = 1
                     i.bInterfaceClass = 0xFF
                     i.bInterfaceSubclass = 0x00
+                    i.bInterfaceProtocol = ApolloAdvertiserRequestHandler.PROTOCOL_VERSION
 
         return descriptors
 
@@ -298,7 +301,7 @@ class FlashBridge(Elaboratable):
         m.submodules.usb = usb = USBDevice(bus=ulpi)
 
         # Check how the port is shared with Apollo.
-        sharing = platform.apollo_port_sharing(phy_name)
+        sharing = platform.port_sharing(phy_name)
 
         # Add our standard control endpoint to the device.
         descriptors = self.create_descriptors(sharing)
