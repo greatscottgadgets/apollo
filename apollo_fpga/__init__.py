@@ -1,7 +1,7 @@
 #
-# This file is part of LUNA.
+# This file is part of Apollo.
 #
-# Copyright (c) 2020 Great Scott Gadgets <info@greatscottgadgets.com>
+# Copyright (c) 2020-2024 Great Scott Gadgets <info@greatscottgadgets.com>
 # SPDX-License-Identifier: BSD-3-Clause
 
 import os
@@ -47,6 +47,8 @@ class ApolloDebugger:
         LUNA_USB_IDS += [tuple([int(x, 16) for x in os.getenv("LUNA_USB_IDS").split(":")])]
 
     REQUEST_SET_LED_PATTERN         = 0xa1
+    REQUEST_GET_FIRMWARE_VERSION    = 0xa2
+    REQUEST_GET_USB_API_VERSION     = 0xa3
     REQUEST_RECONFIGURE             = 0xc0
     REQUEST_FORCE_FPGA_OFFLINE      = 0xc1
     REQUEST_ALLOW_FPGA_TAKEOVER_USB = 0xc2
@@ -302,3 +304,20 @@ class ApolloDebugger:
         """ Closes the USB device so it can be reused, possibly by another ApolloDebugger """
 
         usb.util.dispose_resources(self.device)
+
+
+    def get_firmware_version(self):
+        c_string = self.in_request(self.REQUEST_GET_FIRMWARE_VERSION, length=256)
+        return c_string.decode('utf-8').split('\x00')[0]
+
+
+    def get_usb_api_version(self):
+        raw_api_version = self.in_request(self.REQUEST_GET_USB_API_VERSION, length=2)
+        api_major = int(raw_api_version[0])
+        api_minor = int(raw_api_version[1])
+        return (api_major, api_minor)
+
+
+    def get_usb_api_version_string(self):
+        (api_major, api_minor) = self.get_usb_api_version()
+        return (f"{api_major}.{api_minor}")
