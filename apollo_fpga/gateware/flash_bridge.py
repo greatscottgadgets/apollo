@@ -18,6 +18,8 @@ from luna.usb2                        import USBDevice, USBStreamInEndpoint, USB
 from usb_protocol.types               import USBRequestType, USBRequestRecipient
 from usb_protocol.emitters            import DeviceDescriptorCollection
 
+from .advertiser                      import ApolloAdvertiser
+
 VENDOR_ID  = 0x1209
 PRODUCT_ID = 0x000F
 
@@ -298,7 +300,7 @@ class FlashBridge(Elaboratable):
         m.submodules.usb = usb = USBDevice(bus=ulpi)
 
         # Check how the port is shared with Apollo.
-        sharing = platform.apollo_port_sharing(phy_name)
+        sharing = platform.port_sharing(phy_name)
 
         # Add our standard control endpoint to the device.
         descriptors = self.create_descriptors(sharing)
