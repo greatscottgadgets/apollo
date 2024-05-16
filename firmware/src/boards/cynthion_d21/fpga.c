@@ -76,5 +76,5 @@ void trigger_fpga_reconfiguration(void)
 	gpio_set_pin_direction(PIN_PROG, GPIO_DIRECTION_IN);
 
 	// Update internal state.
-	fpga_online = true;
+	fpga_set_online(true);
 }

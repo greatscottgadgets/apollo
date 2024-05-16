@@ -8,6 +8,8 @@
 #include <bsp/board_api.h>
 
 #include "jtag.h"
+#include "fpga.h"
+#include "fpga_adv.h"
 
 
 extern uint8_t jtag_out_buffer[256];
@@ -39,7 +41,7 @@ void force_fpga_offline(void)
 	jtag_deinit();
 
 	// Update internal state.
-	fpga_online = false;
+	fpga_set_online(false);
 }
 
 /*
@@ -48,4 +50,22 @@ void force_fpga_offline(void)
 bool fpga_is_online(void)
 {
 	return fpga_online;
+}
+
+/**
+ * Update our understanding of the FPGA's state.
+ */
+void fpga_set_online(bool online)
+{
+	fpga_online = online;
+
+	/*
+	 * When the FPGA goes offline, stop allowing the FPGA to take over the
+	 * shared USB port. After the FPGA comes back online, the host may
+	 * request that it be allowed again, but we assume that it is
+	 * disallowed until told otherwise.
+	 */
+	if (!online) {
+		allow_fpga_takeover_usb(false);
+	}
 }

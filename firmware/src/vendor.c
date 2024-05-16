@@ -151,7 +151,7 @@ bool handle_allow_fpga_takeover_usb(uint8_t rhport, tusb_control_request_t const
 
 bool handle_allow_fpga_takeover_usb_finish(uint8_t rhport, tusb_control_request_t const* request)
 {
-	allow_fpga_takeover_usb();
+	allow_fpga_takeover_usb(true);
 	return true;
 }
 
