@@ -9,6 +9,7 @@
 #include <hal/include/hal_gpio.h>
 
 #include "jtag.h"
+#include "fpga.h"
 
 // List of pins used for FPGA interfacing.
 enum {
@@ -73,4 +74,7 @@ void trigger_fpga_reconfiguration(void)
 
 	gpio_set_pin_level(PIN_PROG, true);
 	gpio_set_pin_direction(PIN_PROG, GPIO_DIRECTION_IN);
+
+	// Update internal state.
+	fpga_online = true;
 }

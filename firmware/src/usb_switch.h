@@ -10,6 +10,7 @@
 #ifndef __USB_SWITCH_H__
 #define __USB_SWITCH_H__
 
+#include <stdbool.h>
 
 /**
  * Hand off shared USB port to FPGA.
@@ -21,5 +22,8 @@ void hand_off_usb(void);
  */
 void take_over_usb(void);
 
-
+/**
+ * True if the USB switch handed over the port to the FPGA. 
+ */
+bool fpga_controls_usb_port(void);
 #endif

@@ -21,15 +21,15 @@
 
 
 /** Store the current LED blink pattern. */
-static blink_pattern_t blink_pattern = BLINK_IDLE;
+static led_pattern_t led_pattern = LED_IDLE;
 
 
 /**
- * Sets the active LED blink pattern.
+ * Sets the active LED pattern.
  */
-void led_set_blink_pattern(blink_pattern_t pattern)
+void led_set_pattern(led_pattern_t pattern)
 {
-	blink_pattern = pattern;
+	led_pattern = pattern;
 	leds_off();
 }
 
@@ -91,18 +91,18 @@ void leds_off(void)
 
 
 /**
- * Task that handles blinking the heartbeat LED.
+ * Task that handles LED updates.
  */
-void heartbeat_task(void)
+void led_task(void)
 {
 	static uint32_t start_ms = 0;
 
 	// Blink every interval ms
-	if ( board_millis() - start_ms < blink_pattern) {
+	if ( board_millis() - start_ms < led_pattern) {
 		return; // not enough time
 	}
 
-	start_ms += blink_pattern;
+	start_ms += led_pattern;
 	led_toggle(LED_STATUS);
 
 }

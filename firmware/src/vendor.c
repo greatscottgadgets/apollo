@@ -116,7 +116,7 @@ bool handle_get_id_request(uint8_t rhport, tusb_control_request_t const* request
  */
 bool handle_set_led_pattern(uint8_t rhport, tusb_control_request_t const* request)
 {
-	led_set_blink_pattern(request->wValue);
+	led_set_pattern(request->wValue);
 	return tud_control_xfer(rhport, request, NULL, 0);
 }
 

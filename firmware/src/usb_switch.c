@@ -63,3 +63,16 @@ void take_over_usb(void)
 	switch_state = SWITCH_MCU;
 #endif
 }
+
+
+/**
+ * True if the USB switch handed over the port to the FPGA. 
+ */
+bool fpga_controls_usb_port(void)
+{
+#ifdef BOARD_HAS_USB_SWITCH
+	return switch_state == SWITCH_FPGA;
+#else
+	return false;
+#endif
+}
