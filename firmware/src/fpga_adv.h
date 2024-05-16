@@ -23,7 +23,7 @@ void fpga_adv_task(void);
 /**
  * Allow FPGA takeover of the USB port
  */
-void allow_fpga_takeover_usb(void);
+void allow_fpga_takeover_usb(bool allow);
 
 /**
  * True if we received an advertisement message within the last time window.

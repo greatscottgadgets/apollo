@@ -24,8 +24,8 @@
 #define TIMEOUT 100UL
 static uint32_t last_phy_adv = 0;
 
-// Allow deferred switching of the USB port.
-static bool defer_hand_off = false;
+// Switching the shared USB port to the FPGA is allowed.
+static bool fpga_usb_allowed = false;
 
 // Create a reference to our SERCOM object.
 typedef Sercom sercom_t;
@@ -114,9 +114,8 @@ void fpga_adv_task(void)
     // Take over USB after timeout
 	if (fpga_requesting_port() == false) {
 		take_over_usb();
-	} else if (defer_hand_off) {
+	} else if (fpga_usb_allowed) {
 		hand_off_usb();
-		defer_hand_off = false;
 	}
 #endif
 }
@@ -124,15 +123,9 @@ void fpga_adv_task(void)
 /**
  * Allow FPGA takeover of the USB port
  */
-void allow_fpga_takeover_usb(void)
+void allow_fpga_takeover_usb(bool allow)
 {
-#ifdef BOARD_HAS_USB_SWITCH
-	if (fpga_requesting_port()) {
-		hand_off_usb();
-	} else {
-		defer_hand_off = true;
-	}
-#endif
+	fpga_usb_allowed = allow;
 }
 
 /**

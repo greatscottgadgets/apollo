@@ -39,4 +39,9 @@ void force_fpga_offline(void);
  */
 bool fpga_is_online(void);
 
+/**
+ * Update our understanding of the FPGA's state.
+ */
+void fpga_set_online(bool online);
+
 #endif

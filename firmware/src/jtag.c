@@ -116,10 +116,10 @@ bool handle_jtag_request_set_out_buffer(uint8_t rhport, tusb_control_request_t c
 	// HACK: check the buffer for commands that affect the FPGA configuration state.
     if (request->wLength == 1) {
 		if (jtag_out_buffer[0] == ISC_ENABLE) {
-			fpga_online = false;
+			fpga_set_online(false);
 		}
 		if (jtag_out_buffer[0] == ISC_DISABLE) {
-			fpga_online = true;
+			fpga_set_online(true);
 		}
     }
 
