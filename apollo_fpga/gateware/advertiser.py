@@ -64,6 +64,10 @@ class ApolloAdvertiserRequestHandler(USBRequestHandler):
     
     Implements default vendor requests related to ApolloAdvertiser.
     """
+
+    """ The bInterfaceProtocol version supported by this request handler. """
+    PROTOCOL_VERSION = 0x00
+
     REQUEST_APOLLO_ADV_STOP = 0xF0
 
     def __init__(self, if_number, stop_pin):

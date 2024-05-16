@@ -18,7 +18,7 @@ from luna.usb2                        import USBDevice, USBStreamInEndpoint, USB
 from usb_protocol.types               import USBRequestType, USBRequestRecipient
 from usb_protocol.emitters            import DeviceDescriptorCollection
 
-from .advertiser                      import ApolloAdvertiser
+from .advertiser                      import ApolloAdvertiser, ApolloAdvertiserRequestHandler
 
 VENDOR_ID  = 0x1209
 PRODUCT_ID = 0x000F
@@ -269,6 +269,7 @@ class FlashBridge(Elaboratable):
                 i.bInterfaceNumber = 0
                 i.bInterfaceClass = 0xFF
                 i.bInterfaceSubclass = 0x01
+                i.bInterfaceProtocol = 0x00
 
                 with i.EndpointDescriptor() as e:
                     e.bEndpointAddress = BULK_ENDPOINT_NUMBER
@@ -284,6 +285,7 @@ class FlashBridge(Elaboratable):
                     i.bInterfaceNumber = 1
                     i.bInterfaceClass = 0xFF
                     i.bInterfaceSubclass = 0x00
+                    i.bInterfaceProtocol = ApolloAdvertiserRequestHandler.PROTOCOL_VERSION
 
         return descriptors
 
