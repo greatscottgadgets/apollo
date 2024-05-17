@@ -6,19 +6,22 @@
 
 import usb.core
 
-from amaranth                         import Signal, Elaboratable, Module, Cat, C
-from amaranth.lib.fifo                import AsyncFIFO
+from amaranth                          import Signal, Elaboratable, Module, Cat, C
+from amaranth.lib.fifo                 import AsyncFIFO
 
-from luna.gateware.interface.flash    import ECP5ConfigurationFlashInterface
-from luna.gateware.interface.spi      import SPIBus
-from luna.gateware.stream             import StreamInterface
-from luna.gateware.usb.usb2.request   import USBRequestHandler
-from luna.usb2                        import USBDevice, USBStreamInEndpoint, USBStreamOutEndpoint
+from luna.gateware.interface.flash     import ECP5ConfigurationFlashInterface
+from luna.gateware.interface.spi       import SPIBus
+from luna.gateware.stream              import StreamInterface
+from luna.gateware.usb.usb2.request    import USBRequestHandler
+from luna.gateware.usb.request.windows import MicrosoftOS10DescriptorCollection
+from luna.gateware.usb.request.windows import MicrosoftOS10RequestHandler
+from luna.usb2                         import USBDevice, USBStreamInEndpoint, USBStreamOutEndpoint
 
-from usb_protocol.types               import USBRequestType, USBRequestRecipient
-from usb_protocol.emitters            import DeviceDescriptorCollection
+from usb_protocol.types                import USBRequestType, USBRequestRecipient
+from usb_protocol.emitters             import DeviceDescriptorCollection
+from usb_protocol.emitters.descriptors.standard import get_string_descriptor
 
-from .advertiser                      import ApolloAdvertiser, ApolloAdvertiserRequestHandler
+from .advertiser                       import ApolloAdvertiser, ApolloAdvertiserRequestHandler
 
 VENDOR_ID  = 0x1209
 PRODUCT_ID = 0x000F
@@ -303,9 +306,27 @@ class FlashBridge(Elaboratable):
         # Check how the port is shared with Apollo.
         sharing = platform.port_sharing(phy_name)
 
-        # Add our standard control endpoint to the device.
+        # Create descriptors.
         descriptors = self.create_descriptors(sharing)
-        control_ep = usb.add_standard_control_endpoint(descriptors)
+
+        # Add Microsoft OS 1.0 descriptors for Windows compatibility.
+        descriptors.add_descriptor(get_string_descriptor("MSFT100\xee"), index=0xee)
+        msft_descriptors = MicrosoftOS10DescriptorCollection()
+        with msft_descriptors.ExtendedCompatIDDescriptor() as c:
+            with c.Function() as f:
+                f.bFirstInterfaceNumber = 0
+                f.compatibleID          = 'WINUSB'
+            if sharing is not None:
+                with c.Function() as f:
+                    f.bFirstInterfaceNumber = 1
+                    f.compatibleID          = 'WINUSB'
+
+        # Add our standard control endpoint to the device.
+        control_ep = usb.add_standard_control_endpoint(descriptors, avoid_blockram=True)
+
+        # Add handler for Microsoft descriptors.
+        msft_handler = MicrosoftOS10RequestHandler(msft_descriptors, request_code=0xee)
+        control_ep.add_request_handler(msft_handler)
 
         # Add our vendor request handler to the control endpoint.
         control_ep.add_request_handler(FlashBridgeRequestHandler(0))
