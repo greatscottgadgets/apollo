@@ -189,7 +189,7 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
 		const char* str;
 		if (index == 0xee) {
 			// Microsoft OS 1.0 String Descriptor
-			str = "MSFT100\xee\x01";
+			str = "MSFT100\xee";
 		} else {
 			if ( !(index < sizeof(string_desc_arr)/sizeof(string_desc_arr[0])) ) {
 				return NULL;

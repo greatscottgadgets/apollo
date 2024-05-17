@@ -74,8 +74,8 @@ enum {
 	VENDOR_REQUEST_GET_MS_DESCRIPTOR       = 0xee,
 };
 
-// Microsoft OS 1.0 descriptor
-uint8_t desc_ms_os_10[] = {
+// Microsoft OS 1.0 Compat ID Feature descriptor
+uint8_t msft_10_compat_id[] = {
 	// Header: length, bcdVersion, wIndex, bCount, reserved[7]
 	U32_TO_U8S_LE(0x0028),
 	U16_TO_U8S_LE(0x0100),
@@ -91,6 +91,30 @@ uint8_t desc_ms_os_10[] = {
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
 };
 
+// Microsoft OS 1.0 Extended Properties Feature descriptor
+uint8_t msft_10_ext_props[] = {
+	U32_TO_U8S_LE(0x0000008E),  // Length 142 bytes
+	U16_TO_U8S_LE(0x0100),      // Version
+	U16_TO_U8S_LE(0x0005),      // Extended Properties Feature Descriptor index
+	U16_TO_U8S_LE(0x0001),      // Number of sections
+
+	U32_TO_U8S_LE(0x00000084),  // Size of the property section
+	U32_TO_U8S_LE(0x00000001),  // Property data type (1 = Unicode REG_SZ)
+
+	U16_TO_U8S_LE(0x0028),      // Property name length (40 bytes)
+	// Property Name ("DeviceInterfaceGUID") 
+	'D', 0, 'e', 0, 'v', 0, 'i', 0, 'c', 0, 'e', 0, 'I', 0, 'n', 0,
+	't', 0, 'e', 0, 'r', 0, 'f', 0, 'a', 0, 'c', 0, 'e', 0, 'G', 0,
+	'U', 0, 'I', 0, 'D', 0, 0, 0,
+
+	U32_TO_U8S_LE(0x0000004E),  // Property data length (78 bytes)
+	// Property Name "{88BAE032-5A81-49f0-BC3D-A4FF138216D6}" from winusb.inf
+	'{', 0, '8', 0, '8', 0, 'b', 0, 'a', 0, 'e', 0, '0', 0, '3', 0,
+	'2', 0, '-', 0, '5', 0, 'a', 0, '8', 0, '1', 0, '-', 0, '4', 0,
+	'9', 0, 'f', 0, '0', 0, '-', 0, 'b', 0, 'c', 0, '3', 0, 'd', 0,
+	'-', 0, 'a', 0, '4', 0, 'f', 0, 'f', 0, '1', 0, '3', 0, '8', 0,
+	'2', 0, '1', 0, '6', 0, 'd', 0, '6', 0, '}', 0, 0, 0,
+};
 
 /**
  * Request Microsoft Windows Compatible ID descriptor.
@@ -98,7 +122,9 @@ uint8_t desc_ms_os_10[] = {
 bool handle_get_ms_descriptor(uint8_t rhport, tusb_control_request_t const* request)
 {
 	if (request->wIndex == 0x0004) {
-		return tud_control_xfer(rhport, request, desc_ms_os_10, sizeof(desc_ms_os_10));
+		return tud_control_xfer(rhport, request, msft_10_compat_id, sizeof(msft_10_compat_id));
+	} else if (request->wIndex == 0x0005) {
+		return tud_control_xfer(rhport, request, msft_10_ext_props, sizeof(msft_10_ext_props));
 	} else {
 		return false;
 	}
