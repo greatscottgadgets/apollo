@@ -7,6 +7,7 @@
 import os
 import time
 import usb.core
+import platform
 
 from .jtag  import JTAGChain
 from .spi   import DebugSPIConnection
@@ -128,6 +129,10 @@ class ApolloDebugger:
         stub_if = cls._device_has_stub_iface(device, return_iface=True)
         if stub_if is None:
             raise DebuggerNotFound("No Apollo stub interface found")
+
+        # In Windows, we first need to claim the target interface.
+        if platform.system() == "Windows":
+            usb.util.claim_interface(device, stub_if)
 
         # Send the request
         intf_number = stub_if.bInterfaceNumber
