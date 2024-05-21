@@ -14,15 +14,24 @@ jobs:
     steps:
     - name: Install ARM GCC
       uses: carlosperate/arm-none-eabi-gcc-action@v1
-      with:
-        release: '12.2.Rel1'
 
     - name: Checkout source code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
-        submodules: 'recursive'
+        submodules: true
+        fetch-depth: 0
 
     - name: Build Apollo firmware for ${{ matrix.target-board }}
       run: |
         cd firmware
         APOLLO_BOARD=${{ matrix.target-board }} make get-deps all
+
+    # Publish bootloader binary for latest Cynthion hardware revision
+    - name: Publish Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: firmware-binaries
+        path: |
+          firmware/_build/cynthion_d11/firmware.bin
+          firmware/_build/cynthion_d11/firmware.elf
+      if: matrix.target-board == 'cynthion'
