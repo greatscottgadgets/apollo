@@ -3,7 +3,7 @@
  *
  * This file is part of LUNA.
  *
- * Copyright (c) 2020 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2020-2024 Great Scott Gadgets <info@greatscottgadgets.com>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -14,6 +14,7 @@
 #include <hal/include/hal_gpio.h>
 #include <stdbool.h>
 
+//#define BOARD_HAS_SHARED_USB
 
 // Indicate that this board features a configuration flash.
 #define _BOARD_HAS_CONFIG_FLASH_

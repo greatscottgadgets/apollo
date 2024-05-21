@@ -3,7 +3,7 @@
  *
  * This file is part of Apollo.
  *
- * Copyright (c) 2023 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2023-2024 Great Scott Gadgets <info@greatscottgadgets.com>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -20,7 +20,7 @@ enum {
 	SWITCH_FPGA    = 2,
 };
 
-#ifdef BOARD_HAS_USB_SWITCH
+#ifdef BOARD_HAS_SHARED_USB
 static int switch_state = SWITCH_UNKNOWN;
 #endif
 
@@ -29,15 +29,20 @@ static int switch_state = SWITCH_UNKNOWN;
  */
 void hand_off_usb(void)
 {
-#ifdef BOARD_HAS_USB_SWITCH
+#ifdef BOARD_HAS_SHARED_USB
 	if (switch_state == SWITCH_FPGA) return;
 
 	// Disable internal pull-up resistor on D+/D- pins for a moment to force a disconnection
 	tud_disconnect();
 	board_delay(100);
 
+#ifdef BOARD_HAS_USB_SWITCH
 	gpio_set_pin_level(USB_SWITCH, false);
 	gpio_set_pin_direction(USB_SWITCH, GPIO_DIRECTION_OUT);
+#else
+	gpio_set_pin_pull_mode(PHY_RESET, GPIO_PULL_DOWN);
+	gpio_set_pin_direction(PHY_RESET, GPIO_DIRECTION_IN);
+#endif
 
 	switch_state = SWITCH_FPGA;
 #endif
@@ -49,11 +54,16 @@ void hand_off_usb(void)
  */
 void take_over_usb(void)
 {
-#ifdef BOARD_HAS_USB_SWITCH
+#ifdef BOARD_HAS_SHARED_USB
 	if (switch_state == SWITCH_MCU) return;
 
+#ifdef BOARD_HAS_USB_SWITCH
 	gpio_set_pin_level(USB_SWITCH, true);
 	gpio_set_pin_direction(USB_SWITCH, GPIO_DIRECTION_OUT);
+#else
+	gpio_set_pin_level(PHY_RESET, false);
+	gpio_set_pin_direction(PHY_RESET, GPIO_DIRECTION_OUT);
+#endif
 
 	// Disable internal pull-up resistor on D+/D- pins for a moment to force a disconnection
 	tud_disconnect();
@@ -70,7 +80,7 @@ void take_over_usb(void)
  */
 bool fpga_controls_usb_port(void)
 {
-#ifdef BOARD_HAS_USB_SWITCH
+#ifdef BOARD_HAS_SHARED_USB
 	return switch_state == SWITCH_FPGA;
 #else
 	return false;
