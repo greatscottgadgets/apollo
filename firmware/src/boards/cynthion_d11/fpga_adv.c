@@ -100,8 +100,8 @@ void fpga_adv_init(void)
 	sercom->USART.CTRLA.bit.ENABLE = 1;
 	while(sercom->USART.SYNCBUSY.bit.ENABLE);
 
-	// Update timestamp
-	last_phy_adv = board_millis();
+	// Set timestamp to ensure we don't erroneously detect an initial advertisement.
+	last_phy_adv = board_millis() - TIMEOUT;
 #endif
 }
 
