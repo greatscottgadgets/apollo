@@ -3,7 +3,7 @@
  *
  * This file is part of LUNA.
  *
- * Copyright (c) 2020 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2020-2024 Great Scott Gadgets <info@greatscottgadgets.com>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -152,10 +152,10 @@ void led_task(void)
 
   // When the device is idle, use the following scheme for LEDs:
   // - LED A: power indication (always on in Apollo)
-  // - LED B: FPGA allowed online (indicates PROGRAM toggle)
+  // - LED B: FPGA allowed online
   // - LED C: FPGA has requested CONTROL port
   // - LED D: USB switched to FPGA
-  // - LED E: flashing patterns (e.g. fault indication)
+  // - LED E: reserved for flashing patterns (e.g. fault indication)
   if (led_pattern == LED_IDLE) {
     led_set(LED_A, true);
     led_set(LED_B, fpga_is_online());
