@@ -11,6 +11,15 @@ jobs:
         - 'cynthion'
         - 'samd11_xplained'
         - 'qtpy'
+        - 'cynthion r0.2'
+        - 'cynthion r0.4'
+        include:
+          - target-board: 'cynthion r0.2'
+            board-major: 0
+            board-minor: 2
+          - target-board: 'cynthion r0.4'
+            board-major: 0
+            board-minor: 4
     steps:
     - name: Install ARM GCC
       uses: carlosperate/arm-none-eabi-gcc-action@v1
@@ -24,7 +33,14 @@ jobs:
     - name: Build Apollo firmware for ${{ matrix.target-board }}
       run: |
         cd firmware
-        APOLLO_BOARD=${{ matrix.target-board }} make get-deps all
+        if [ -n "${{ matrix.board-major }}" ]; then
+          export BOARD_REVISION_MAJOR=${{ matrix.board-major }}
+          export BOARD_REVISION_MINOR=${{ matrix.board-minor }}
+          export APOLLO_BOARD="cynthion"
+        else
+          export APOLLO_BOARD=${{ matrix.target-board }}
+        fi
+        make get-deps all
 
     # Publish bootloader binary for latest Cynthion hardware revision
     - name: Publish Artifacts
