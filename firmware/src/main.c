@@ -54,6 +54,7 @@ int main(void)
 	fpga_io_init();
 	led_init();
 	debug_spi_init();
+	allow_fpga_takeover_usb(true);
 
 	if (button_pressed()) {
 		/*
