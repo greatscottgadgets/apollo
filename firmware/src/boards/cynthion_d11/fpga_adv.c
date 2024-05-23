@@ -20,88 +20,53 @@
 
 #ifdef BOARD_HAS_USB_SWITCH
 
-// Store the timestamp of the last physical port advertisement
-#define TIMEOUT 100UL
-static uint32_t last_phy_adv = 0;
-
 // Switching the shared USB port to the FPGA is allowed.
 static bool fpga_usb_allowed = false;
 
-// Create a reference to our SERCOM object.
-typedef Sercom sercom_t;
-static sercom_t *sercom = SERCOM1;
-
-static void fpga_adv_byte_received_cb(uint8_t byte, int parity_error);
+// Store the timestamp of the last physical port advertisement
+#define WINDOW_PERIOD_MS 200UL
+static uint32_t last_update = 0;
+static uint32_t window_edges = 3;  // avoid glitch during startup
+static volatile uint32_t edge_counter = 0;
 
 #endif
 
 /**
- * Initialize FPGA_ADV receive-only serial port
+ * Initialize FPGA_ADV receive-only pin
  */
 void fpga_adv_init(void)
 {
 #ifdef BOARD_HAS_USB_SWITCH
+	// Enable the APB clock for EIC (External Interrupt Controller).
+	_pm_enable_bus_clock(PM_BUS_APBA, EIC);
+
+	// Configure GCLK for EIC.
+	_gclk_enable_channel(GCLK_CLKCTRL_ID_EIC_Val, GCLK_CLKCTRL_GEN_GCLK0_Val);
+	while (GCLK->STATUS.bit.SYNCBUSY);
+
+	// Configure FPGA_ADV as an input with function A (external interrupt).
 	gpio_set_pin_direction(FPGA_ADV, GPIO_DIRECTION_IN);
 	gpio_set_pin_pull_mode(FPGA_ADV, GPIO_PULL_UP);
+	gpio_set_pin_function(FPGA_ADV, MUX_PA09A_EIC_EXTINT7);
 
-	// Disable the SERCOM before configuring it, to 1) ensure we're not transacting
-	// during configuration; and 2) as many of the registers are R/O when the SERCOM is enabled.
-	while(sercom->USART.SYNCBUSY.bit.ENABLE);
-	sercom->USART.CTRLA.bit.ENABLE = 0;
+	// Disable EIC.
+	EIC->CTRL.bit.ENABLE = 0;
+	while (EIC->STATUS.bit.SYNCBUSY);
 
-	// Software reset the SERCOM to restore initial values.
-	while(sercom->USART.SYNCBUSY.bit.SWRST);
-	sercom->USART.CTRLA.bit.SWRST = 1;
+	// Configure EIC to trigger on rising edge.
+	uint8_t const sense_shift = 7 * 4;
+	EIC->CONFIG[0].reg &= ~(7 << sense_shift);
+	EIC->CONFIG[0].reg |= 1 << sense_shift;
 
-	// The SWRST bit becomes accessible again once the software reset is
-	// complete -- we'll use this to wait for the reset to be finshed.
-	while(sercom->USART.SYNCBUSY.bit.SWRST);
+	// Enable External Interrupt.
+	EIC->INTENSET.reg = EIC_INTENSET_EXTINT(1 << 7);
 
-	// Ensure we can work with the full SERCOM.
-	while(sercom->USART.SYNCBUSY.bit.SWRST || sercom->USART.SYNCBUSY.bit.ENABLE);
+	// Enable EIC.
+	EIC->CTRL.bit.ENABLE = 1;
+	while (EIC->STATUS.bit.SYNCBUSY);
 
-	// Pinmux the relevant pins to be used for the SERCOM.
-	gpio_set_pin_function(PIN_PA09, MUX_PA09C_SERCOM1_PAD3);
-
-	// Set up clocking for the SERCOM peripheral.
-	_pm_enable_bus_clock(PM_BUS_APBC, SERCOM1);
-	_gclk_enable_channel(SERCOM1_GCLK_ID_CORE, GCLK_CLKCTRL_GEN_GCLK0_Val);
-
-	// Configure the SERCOM for UART mode.
-	sercom->USART.CTRLA.reg =
-		SERCOM_USART_CTRLA_DORD     |          // LSB first
-		SERCOM_USART_CTRLA_RXPO(3)  |          // RX on PA09 (PAD[3])
-		SERCOM_USART_CTRLA_SAMPR(0) |          // use 16x oversampling
-		SERCOM_USART_CTRLA_FORM(1)	|          // enable parity
-		SERCOM_USART_CTRLA_RUNSTDBY |          // don't autosuspend the clock
-		SERCOM_USART_CTRLA_MODE_USART_INT_CLK; // use internal clock
-
-	// Configure our baud divisor.
-	const uint32_t baudrate = 9600;
-	const uint32_t baud = (((uint64_t)CONF_CPU_FREQUENCY << 16) - ((uint64_t)baudrate << 20)) / CONF_CPU_FREQUENCY;
-	sercom->USART.BAUD.reg = baud;
-
-	// Configure TX/RX and framing.
-	sercom->USART.CTRLB.reg =
-			SERCOM_USART_CTRLB_CHSIZE(0) | // 8-bit words
-			SERCOM_USART_CTRLB_RXEN;       // Enable RX.
-
-	// Wait for our changes to apply.
-	while (sercom->USART.SYNCBUSY.bit.CTRLB);
-
-	// Enable our receive interrupt, as we want to asynchronously dump data into
-	// the UART console.
-	sercom->USART.INTENSET.reg = SERCOM_USART_INTENSET_RXC;
-
-	// Enable the UART IRQ.
-	NVIC_EnableIRQ(SERCOM1_IRQn);
-
-	// Finally, enable the SERCOM.
-	sercom->USART.CTRLA.bit.ENABLE = 1;
-	while(sercom->USART.SYNCBUSY.bit.ENABLE);
-
-	// Set timestamp to ensure we don't erroneously detect an initial advertisement.
-	last_phy_adv = board_millis() - TIMEOUT;
+	// Enable IRQ.
+	NVIC_EnableIRQ(EIC_IRQn);
 #endif
 }
 
@@ -111,6 +76,13 @@ void fpga_adv_init(void)
 void fpga_adv_task(void)
 {
 #ifdef BOARD_HAS_USB_SWITCH
+	// Update edge counts inside time window.
+	if (board_millis() - last_update >= WINDOW_PERIOD_MS) {
+		window_edges = edge_counter;
+		edge_counter = 0;
+		last_update  = board_millis();
+	}
+
     // Take over USB after timeout
 	if (fpga_requesting_port() == false) {
 		take_over_usb();
@@ -134,7 +106,8 @@ void allow_fpga_takeover_usb(bool allow)
 bool fpga_requesting_port(void)
 {
 #ifdef BOARD_HAS_USB_SWITCH
-	return board_millis() - last_phy_adv < TIMEOUT;
+	// True iff the number of edge counts surpasses the defined threshold.
+	return window_edges > 2;
 #else
 	return false;
 #endif
@@ -145,24 +118,11 @@ bool fpga_requesting_port(void)
 /**
  * FPGA_ADV interrupt handler.
  */
-void SERCOM1_Handler(void)
-{
-	// If we've just received a character, handle it.
-	if (sercom->USART.INTFLAG.bit.RXC)
-	{
-		// Read the relevant character, which marks this interrupt as serviced.
-		uint16_t byte = sercom->USART.DATA.reg;
-		fpga_adv_byte_received_cb(byte, sercom->USART.STATUS.bit.PERR);
-	}
-}
+void EIC_Handler(void) {
+  // Clear the interrupt flag.
+  EIC->INTFLAG.reg = EIC_INTFLAG_EXTINT(1 << 7);
 
-static void fpga_adv_byte_received_cb(uint8_t byte, int parity_error) {
-	if (parity_error) {
-		return;
-	}
-
-	if (byte == 'A') {
-		last_phy_adv = board_millis();
-	}
+  // Increment our edge counter.
+  edge_counter++;
 }
 #endif
