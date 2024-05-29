@@ -11,7 +11,7 @@
 #define __FPGA_ADV_H__
 
 /**
- * Initialize FPGA_ADV receive-only serial port
+ * Initialize FPGA_ADV receive-only pin
  */
 void fpga_adv_init(void);
 
