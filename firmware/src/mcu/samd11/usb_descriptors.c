@@ -161,7 +161,7 @@ static uint16_t *get_serial_number_string_descriptor(void)
 		}
 		bits_left -= 5;
 		int index = (buffer >> bits_left) & 0x1f;
-		_desc_str[count++] = index + (index < 26 ? 'A' : '2');  // RFC 4648 Base32
+		_desc_str[count++] = index + (index < 26 ? 'A' : '2' - 26);  // RFC 4648 Base32
 	}
 
 	return _desc_str;

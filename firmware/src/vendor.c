@@ -23,7 +23,7 @@
 #include "fpga_adv.h"
 
 #define USB_API_MAJOR 1
-#define USB_API_MINOR 0
+#define USB_API_MINOR 1
 
 
 // Supported vendor requests.
