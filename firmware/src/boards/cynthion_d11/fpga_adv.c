@@ -3,7 +3,7 @@
  *
  * This file is part of Apollo.
  *
- * Copyright (c) 2024 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2023-2024 Great Scott Gadgets <info@greatscottgadgets.com>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -103,7 +103,16 @@ void fpga_adv_task(void)
  */
 void allow_fpga_takeover_usb(bool allow)
 {
+#ifdef BOARD_HAS_USB_SWITCH
 	fpga_usb_allowed = allow;
+#else
+	/*
+	 * Boards without a USB switch also lack the advertising channel used
+	 * by the FPGA to request the USB port. On those platforms we
+	 * immediately hand off the port to the FPGA.
+	 */
+	hand_off_usb();
+#endif
 }
 
 /**
