@@ -3,7 +3,7 @@
  *
  * This file is part of Apollo.
  *
- * Copyright (c) 2023 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2024 Great Scott Gadgets <info@greatscottgadgets.com>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -23,10 +23,16 @@
 // Switching the shared USB port to the FPGA is allowed.
 static bool fpga_usb_allowed = false;
 
-// Store the timestamp of the last physical port advertisement
+// Duration of the time window (in milliseconds).
 #define WINDOW_PERIOD_MS 200UL
+
+// Store the timestamp of the last time window update.
 static uint32_t last_update = 0;
-static uint32_t window_edges = 3;  // avoid glitch during startup
+
+// Counter of edges detected within the last time window.
+static uint32_t window_edges = 0;
+
+// Counter of edges detected since the last time window update.
 static volatile uint32_t edge_counter = 0;
 
 #endif
@@ -54,9 +60,8 @@ void fpga_adv_init(void)
 	while (EIC->STATUS.bit.SYNCBUSY);
 
 	// Configure EIC to trigger on rising edge.
-	uint8_t const sense_shift = 7 * 4;
-	EIC->CONFIG[0].reg &= ~(7 << sense_shift);
-	EIC->CONFIG[0].reg |= 1 << sense_shift;
+	EIC->CONFIG[0].reg &= ~EIC_CONFIG_SENSE7_Msk;
+	EIC->CONFIG[0].reg |= EIC_CONFIG_SENSE7_RISE;
 
 	// Enable External Interrupt.
 	EIC->INTENSET.reg = EIC_INTENSET_EXTINT(1 << 7);
@@ -76,14 +81,15 @@ void fpga_adv_init(void)
 void fpga_adv_task(void)
 {
 #ifdef BOARD_HAS_USB_SWITCH
-	// Update edge counts inside time window.
-	if (board_millis() - last_update >= WINDOW_PERIOD_MS) {
-		window_edges = edge_counter;
-		edge_counter = 0;
-		last_update  = board_millis();
-	}
+	// Wait for the defined time window.
+	if (board_millis() - last_update < WINDOW_PERIOD_MS) return;
 
-    // Take over USB after timeout
+	// Update edge counts inside time window.
+	window_edges = edge_counter;
+	edge_counter = 0;
+	last_update  = board_millis();
+
+    // Take over USB if the FPGA is not requesting the port.
 	if (fpga_requesting_port() == false) {
 		take_over_usb();
 	} else if (fpga_usb_allowed) {
