@@ -26,13 +26,14 @@
  */
 
 #include "tusb.h"
+#include "board_rev.h"
 
 #define SERIAL_NUMBER_STRING_INDEX 3
 
 //--------------------------------------------------------------------+
 // Device Descriptors
 //--------------------------------------------------------------------+
-tusb_desc_device_t const desc_device =
+tusb_desc_device_t desc_device =
 {
 	.bLength            = sizeof(tusb_desc_device_t),
 	.bDescriptorType    = TUSB_DESC_DEVICE,
@@ -50,7 +51,6 @@ tusb_desc_device_t const desc_device =
 	// These are a unique VID/PID for development LUNA boards.
 	.idVendor           = 0x1d50,
 	.idProduct          = 0x615c,
-	.bcdDevice          = (_BOARD_REVISION_MAJOR_ << 8) | _BOARD_REVISION_MINOR_,
 
 	.iManufacturer      = 0x01,
 	.iProduct           = 0x02,
@@ -63,6 +63,7 @@ tusb_desc_device_t const desc_device =
 // Application return pointer to descriptor
 uint8_t const * tud_descriptor_device_cb(void)
 {
+	desc_device.bcdDevice = get_board_revision();
 	return (uint8_t const *) &desc_device;
 }
 
