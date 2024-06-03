@@ -288,4 +288,19 @@ bool handle_release_configuration_spi(uint8_t rhport, tusb_control_request_t con
 	return false;
 }
 
+
+/**
+ * Request that sends a block of data over our debug SPI.
+ */
+__attribute__((weak)) bool handle_flash_spi_send(uint8_t rhport, tusb_control_request_t const* request)
+{
+	return false;
+}
+
+
+__attribute__((weak)) bool handle_flash_spi_send_complete(uint8_t rhport, tusb_control_request_t const* request)
+{
+	return false;
+}
+
 #endif

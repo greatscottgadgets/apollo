@@ -22,9 +22,32 @@ bool fpga_online = false;
 #define ISC_ENABLE 0xC6
 
 /**
+ * Sets up the I/O pins needed to configure the FPGA.
+ */
+__attribute__((weak)) void fpga_io_init(void)
+{
+}
+
+/*
+ * Allows or disallows the FPGA from configuring. When disallowed,
+ * initialization (erasing of configuration memory) takes place, but the FPGA
+ * does not proceed to the configuration phase.
+ */
+__attribute__((weak)) void permit_fpga_configuration(bool enable)
+{
+}
+
+/**
+ * Requests that the FPGA clear its configuration and try to reconfigure.
+ */
+__attribute__((weak)) void trigger_fpga_reconfiguration(void)
+{
+}
+
+/**
  * Requests that we hold the FPGA in an unconfigured state.
  */
-void force_fpga_offline(void)
+__attribute__((weak)) void force_fpga_offline(void)
 {
 	jtag_init();
 	jtag_go_to_state(STATE_TEST_LOGIC_RESET);
@@ -47,7 +70,7 @@ void force_fpga_offline(void)
 /*
  * True after FPGA reconfiguration, false after forcing FPGA offline.
  */
-bool fpga_is_online(void)
+__attribute__((weak)) bool fpga_is_online(void)
 {
 	return fpga_online;
 }
@@ -55,7 +78,7 @@ bool fpga_is_online(void)
 /**
  * Update our understanding of the FPGA's state.
  */
-void fpga_set_online(bool online)
+__attribute__((weak)) void fpga_set_online(bool online)
 {
 	fpga_online = online;
 

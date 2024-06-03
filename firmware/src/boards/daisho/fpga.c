@@ -21,16 +21,6 @@ enum {
 };
 
 
-/*
- * Allows or disallows the FPGA from configuring. When disallowed,
- * initialization (erasing of configuration memory) takes place, but the FPGA
- * does not proceed to the configuration phase.
- */
-void permit_fpga_configuration(bool enable)
-{
-}
-
-
 static void fpga_initialize_power(void)
 {
 	gpio_t rail_enables[] = {
@@ -70,19 +60,4 @@ void fpga_io_init(void)
 	board_delay(1000);
 	fpga_core_power_sequence();
 	board_delay(1000);
-}
-
-
-/**
- * Requests that the FPGA clear its configuration and try to reconfigure.
- */
-void trigger_fpga_reconfiguration(void)
-{
-	// FIXME: TODO
-}
-
-
-void force_fpga_offline(void)
-{
-	// FIXME: TODO
 }
