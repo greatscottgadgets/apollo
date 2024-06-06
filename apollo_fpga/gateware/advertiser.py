@@ -7,26 +7,25 @@
 """ Controllers for communicating with Apollo through the FPGA_ADV pin """
 
 from amaranth                       import Elaboratable, Module, Signal, Mux
-from amaranth_stdio.serial          import AsyncSerialTX
 
 from luna.gateware.usb.usb2.request import USBRequestHandler
 from usb_protocol.types             import USBRequestType, USBRequestRecipient
 
 
 class ApolloAdvertiser(Elaboratable):
-    """ Gateware that implements a periodic announcement to Apollo using the FPGA_ADV pin.
+    """ Gateware that implements an announcement signal for Apollo using the FPGA_ADV pin.
 
-    Currently it is used to tell Apollo that the gateware wants to use the CONTROL port.
+    Used to tell Apollo that the gateware wants to use the CONTROL port.
     Apollo will keep the port switch connected to the FPGA after a reset as long as this 
-    message is received periodically.
-    Once the port is lost, Apollo will ignore further messages until a specific vendor 
-    request is called.
+    signal is being received and the port takeover is allowed.
 
     I/O ports:
-        I: stop -- Advertisement messages are stopped if this line is asserted.
+        I: stop -- Advertisement signal is stopped if this line is asserted.
     """
-    def __init__(self):
-        self.stop = Signal()
+    def __init__(self, pad=None, clk_freq_hz=None):
+        self.pad         = pad
+        self.clk_freq_hz = clk_freq_hz
+        self.stop        = Signal()
 
     def default_request_handler(self, if_number):
         return ApolloAdvertiserRequestHandler(if_number, self.stop)
@@ -34,27 +33,22 @@ class ApolloAdvertiser(Elaboratable):
     def elaborate(self, platform):
         m = Module()
 
-        clk_freq = platform.DEFAULT_CLOCK_FREQUENCIES_MHZ["sync"] * 1e6
+        # Handle default values.
+        if self.pad is None:
+            self.pad = platform.request("int")
+        if self.clk_freq_hz is None:
+            self.clk_freq_hz = platform.DEFAULT_CLOCK_FREQUENCIES_MHZ["sync"] * 1e6
 
-        # Communication is done with a serial transmitter (unidirectional)
-        baudrate = 9600
-        divisor  = int(clk_freq // baudrate)
-        fpga_adv = AsyncSerialTX(divisor=divisor, data_bits=8, parity="even")
-        m.submodules += fpga_adv
+        # Generate clock with 20ms period.
+        half_period = int(self.clk_freq_hz * 10e-3)
+        timer       = Signal(range(half_period))
+        clk         = Signal()
+        m.d.sync   += timer.eq(Mux(timer == half_period-1, 0, timer+1))
+        with m.If((timer == 0) & (~self.stop)):
+            m.d.sync += clk.eq(~clk)
 
-        # Counter with 50ms period
-        period    = int(clk_freq * 50e-3)
-        timer     = Signal(range(period))
-        m.d.sync += timer.eq(Mux(timer == period-1, 0, timer+1))
-
-        # Trigger announcement when the counter overflows
-        m.d.comb += [
-            fpga_adv.data .eq(ord('A')),
-            fpga_adv.ack  .eq((timer == 0) & ~self.stop),
-        ]
-        
-        # Drive the FPGA_ADV pin with the serial transmitter
-        m.d.comb += platform.request("int").o.eq(fpga_adv.o)
+        # Drive the FPGA_ADV pin with the generated clock signal.
+        m.d.comb += self.pad.o.eq(clk)
         
         return m
 
