@@ -25,6 +25,7 @@ target_sources(${PROJECT} PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/src/button.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/console.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/debug_spi.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/fpga.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/jtag.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/jtag_tap.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c
@@ -32,6 +33,7 @@ target_sources(${PROJECT} PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/src/vendor.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/dfu.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/jtag.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/fpga_adv.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/fpga.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/debug_spi.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/spi.c
@@ -50,6 +52,7 @@ target_compile_definitions(${PROJECT} PUBLIC
 #   CFG_TUSB_OS=OPT_OS_PICO
   _BOARD_REVISION_MAJOR_=${BOARD_REVISION_MAJOR}
   _BOARD_REVISION_MINOR_=${BOARD_REVISION_MINOR}
+  VERSION_STRING="${VERSION_STRING}"
   )
 
 # Configure compilation flags and libraries for the example... see the corresponding function

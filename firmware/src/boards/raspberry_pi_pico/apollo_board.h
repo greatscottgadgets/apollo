@@ -64,6 +64,9 @@ enum {
 	// // Connected to orangecrab pins 0 and 1. SERCOM0
 	UART_RX = UART_RX_PIN,
 	UART_TX = UART_TX_PIN,
+
+	// Connected to orangecrab RSTFPGA_RESET, ecp5 PROGRAMN
+	PIN_PROG = 7,
 };
 
 
