@@ -3,9 +3,7 @@
  *
  * This file provides support for automatically rebooting into the DFU bootloader.
  *
- * This file is part of LUNA.
- *
- * Copyright (c) 2020 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2023-2024 Great Scott Gadgets <info@greatscottgadgets.com>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -17,6 +15,6 @@
  */
 void tud_dfu_runtime_reboot_to_dfu_cb(void)
 {
-  reset_usb_boot(0, 0);
-  while(1);
+    reset_usb_boot(0, 0);
+    while(1);
 }
