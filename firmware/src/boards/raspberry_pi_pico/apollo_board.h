@@ -1,10 +1,8 @@
 /**
- * Apollo board definitions for Adafruit QT Py RP2040
+ * Apollo board definitions for Raspberry Pi Pico
  *
- * This file is part of LUNA.
- *
- * Copyright (c) 2020 Great Scott Gadgets <info@greatscottgadgets.com>
- * Copyright (c) 2022 Markus Blechschmidt <marble@hamburg.ccc.de>
+ * Copyright (c) 2020-2024 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2024 Markus Blechschmidt <marble@computer-in.love>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 

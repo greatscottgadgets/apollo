@@ -3,6 +3,7 @@
  * Using these rather than the raw GPIO functions allows read optimizations.
  *
  * Copyright (c) 2020 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2024 Markus Blechschmidt <marble@computer-in.love>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 

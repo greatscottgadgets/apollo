@@ -1,8 +1,10 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2023-2024 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2019 Katherine J. Temkin <kate@ktemkin.com>
+ * Copyright (c) 2019 Great Scott Gadgets <ktemkin@greatscottgadgets.com>
  * Copyright (c) 2019 Ha Thach (tinyusb.org)
+ * Copyright (c) 2024 Markus Blechschmidt <marble@computer-in.love>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
