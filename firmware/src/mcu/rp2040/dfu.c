@@ -15,6 +15,6 @@
  */
 void tud_dfu_runtime_reboot_to_dfu_cb(void)
 {
-    reset_usb_boot(0, 0);
-    while(1);
+	reset_usb_boot(0, 0);
+	while(1);
 }

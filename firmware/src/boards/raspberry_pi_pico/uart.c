@@ -72,24 +72,24 @@ void uart_initialize(bool configure_pinmux, unsigned long baudrate)
 		uart_configure_pinmux();
 	}
 
-    uart_init(uart_inst, baudrate);
+	uart_init(uart_inst, baudrate);
 
 	while(!uart_is_enabled(uart_inst));
 
-    // Turn off FIFO's - we want to do this character by character
-    uart_set_fifo_enabled(uart_inst, false);
+	// Turn off FIFO's - we want to do this character by character
+	uart_set_fifo_enabled(uart_inst, false);
 
-    // Set up a RX interrupt
-    // We need to set up the handler first
-    // Select correct interrupt for the UART we are using
-    int UART_IRQ = (uart_inst == uart0) ? UART0_IRQ : UART1_IRQ;
+	// Set up a RX interrupt
+	// We need to set up the handler first
+	// Select correct interrupt for the UART we are using
+	int UART_IRQ = (uart_inst == uart0) ? UART0_IRQ : UART1_IRQ;
 
-    // And set up and enable the interrupt handlers
-    irq_set_exclusive_handler(UART_IRQ, on_uart_rx);
-    irq_set_enabled(UART_IRQ, true);
+	// And set up and enable the interrupt handlers
+	irq_set_exclusive_handler(UART_IRQ, on_uart_rx);
+	irq_set_enabled(UART_IRQ, true);
 
-    // Now enable the UART to send interrupts - RX only
-    uart_set_irq_enables(uart_inst, true, false);
+	// Now enable the UART to send interrupts - RX only
+	uart_set_irq_enables(uart_inst, true, false);
 }
 
 
@@ -97,7 +97,7 @@ void uart_initialize(bool configure_pinmux, unsigned long baudrate)
  * Callback issued when the UART recieves a new byte.
  */
 __attribute__((weak)) void uart_byte_received_cb(uint8_t byte) {
-    (void) byte; // unused
+	(void) byte; // unused
 }
 
 
@@ -105,10 +105,10 @@ __attribute__((weak)) void uart_byte_received_cb(uint8_t byte) {
  * UART interrupt handler.
  */
 void on_uart_rx() {
-    while (uart_is_readable(uart_inst)) {
-        uint8_t ch = uart_getc(uart_inst);
+	while (uart_is_readable(uart_inst)) {
+		uint8_t ch = uart_getc(uart_inst);
 		uart_byte_received_cb(ch);
-    }
+	}
 }
 
 
@@ -117,7 +117,7 @@ void on_uart_rx() {
  */
 bool uart_ready_for_write(void)
 {
-    return uart_is_writable(uart_inst);
+	return uart_is_writable(uart_inst);
 }
 
 
@@ -130,8 +130,8 @@ bool uart_ready_for_write(void)
 void uart_nonblocking_write(uint8_t byte)
 {
 	if(uart_ready_for_write()) {
-        uart_putc_raw(uart_inst, byte);
-    }
+		uart_putc_raw(uart_inst, byte);
+	}
 }
 
 
@@ -143,5 +143,5 @@ void uart_nonblocking_write(uint8_t byte)
 void uart_blocking_write(uint8_t byte)
 {
 	while(!uart_ready_for_write()) {}
-    uart_putc_raw(uart_inst, byte);
+	uart_putc_raw(uart_inst, byte);
 }

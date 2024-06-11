@@ -92,7 +92,7 @@ void leds_off(void)
   led_t leds[] = {LED_A};
 
   for (unsigned i = 0; i < LED_COUNT; ++i) {
-    led_off(leds[i]);
+	led_off(leds[i]);
   }
 }
 
@@ -105,7 +105,7 @@ static void display_led_number(uint8_t number)
   led_t leds[] = {LED_A};
 
   if (number < LED_COUNT) {
-    led_on(leds[number]);
+	led_on(leds[number]);
   }
 }
 

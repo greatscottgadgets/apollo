@@ -37,7 +37,7 @@ void fpga_io_init(void)
  */
 void trigger_fpga_reconfiguration(void)
 {
-    /*
+	/*
 	 * If the JTAG TAP was left in certain states, pulsing PROGRAMN has no
 	 * effect, so we reset the state first.
 	 */
