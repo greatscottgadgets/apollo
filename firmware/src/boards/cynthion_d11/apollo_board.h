@@ -52,7 +52,7 @@ enum {
  */
 enum {
 	FPGA_PROGRAM   = PIN_PA08,
-#if ((_BOARD_REVISION_MAJOR_ == 0) && (_BOARD_REVISION_MINOR_ < 6))
+#ifdef BOARD_HAS_SHARED_BUTTON
 	PROGRAM_BUTTON = PIN_PA16,
 	PHY_RESET      = PIN_PA09,
 #else
@@ -60,10 +60,24 @@ enum {
 	USB_SWITCH     = PIN_PA06,
 	FPGA_ADV       = PIN_PA09,
 #endif
-#if ((_BOARD_REVISION_MAJOR_ == 1) && (_BOARD_REVISION_MINOR_ > 2))
+	// FPGA sysCFG pins only in revs >= 1.3.
 	FPGA_INITN     = PIN_PA03,
 	FPGA_DONE      = PIN_PA04,
-#endif
+};
+
+
+/**
+ * Cynthion board revisions as bcdDevice values.
+ */
+enum {
+    CYNTHION_REV_UNKNOWN = 0,
+    CYNTHION_REV_0_6     = (0 << 8) | 6,
+    CYNTHION_REV_0_7     = (0 << 8) | 7,
+    CYNTHION_REV_1_0     = (1 << 8) | 0,
+    CYNTHION_REV_1_1     = (1 << 8) | 1,
+    CYNTHION_REV_1_2     = (1 << 8) | 2,
+    CYNTHION_REV_1_3     = (1 << 8) | 3,
+    CYNTHION_REV_1_4     = (1 << 8) | 4,
 };
 
 
