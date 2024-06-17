@@ -153,6 +153,9 @@ def erase_flash(device, args):
 
 
 def program_flash(device, args):
+    if args.fast:
+        return program_flash_fast(device, args)
+
     ensure_unconfigured(device)
 
     with device.jtag as jtag:
@@ -173,7 +176,7 @@ def program_flash_fast(device, args):
         from luna.gateware.platform import get_appropriate_platform
         from apollo_fpga.gateware.flash_bridge import FlashBridge, FlashBridgeConnection
     except ImportError:
-        logging.error("`flash-fast` requires the `luna` package in the Python environment.\n"
+        logging.error("`flash --fast` requires the `luna` package in the Python environment.\n"
                       "Install `luna` or use `flash` instead.")
         sys.exit(-1)
 
@@ -207,6 +210,11 @@ def program_flash_fast(device, args):
     with open(args.file, "rb") as f:
         bitstream = f.read()
     programmer.flash(bitstream)
+
+
+def program_flash_fast_deprecated(device, args):
+    logging.warning("[WARNING] `flash-fast` is now deprecated. Please use `flash --fast` instead.")
+    return program_flash_fast(device, args)
 
 
 def read_back_flash(device, args):
@@ -343,10 +351,10 @@ COMMANDS = [
     # Flash commands
     Command("flash-erase", handler=erase_flash,
             help="Erases the contents of the FPGA's flash memory."),
-    Command("flash-program", alias=["flash"], args=["file", "--offset"], handler=program_flash,
-            help="Programs the target bitstream onto the FPGA's configuration flash."),
-    Command("flash-fast", args=["file", "--offset"], handler=program_flash_fast,
-            help="Programs a bitstream onto the FPGA's configuration flash using a SPI bridge"),
+    Command("flash-program", alias=["flash"], args=["file", "--offset", (("--fast",), dict(action='store_true'))], 
+            handler=program_flash, help="Programs the target bitstream onto the FPGA's configuration flash."),
+    Command("flash-fast", args=["file", "--offset"], handler=program_flash_fast_deprecated,
+            help="Programs a bitstream onto the FPGA's configuration flash using a SPI bridge."),
     Command("flash-read", args=["file", "--offset", "--length"], handler=read_back_flash,
             help="Reads the contents of the attached FPGA's configuration flash."),
 
@@ -390,7 +398,10 @@ def main():
         cmd_parser = sub_parsers.add_parser(command.name, aliases=command.alias, help=command.help)
         cmd_parser.set_defaults(func=command.handler)
         for arg in command.args:
-            cmd_parser.add_argument(arg)
+            if isinstance(arg, tuple):
+                cmd_parser.add_argument(*arg[0], **arg[1])
+            else:
+                cmd_parser.add_argument(arg)
 
     args = parser.parse_args()
     if not args.command:
