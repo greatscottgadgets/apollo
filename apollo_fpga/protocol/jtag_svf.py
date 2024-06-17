@@ -127,7 +127,7 @@ class SVFLexer:
             else:
                 line, column = self.line_column()
                 print_args = (line, column, self.buffer[self.position:self.position + 16])
-                raise SVFParsingError("unrecognized SVF data at line {{}}, column {{}} ({{}}...)".format(print_args))
+                raise SVFParsingError("unrecognized SVF data at line {}, column {} ({}...)".format(*print_args))
 
     def peek(self):
         """Return the next token without advancing the position."""
