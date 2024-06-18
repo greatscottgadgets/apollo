@@ -333,11 +333,11 @@ Command = namedtuple("Command", ("name", "alias", "args", "help", "handler"),
 
 COMMANDS = [
     # Info queries
-    Command("info", handler=print_device_info,
+    Command("info", handler=print_device_info, args=[(("--force-offline",), dict(action='store_true'))],
             help="Print device info.", ),
     Command("jtag-scan", handler=print_chain_info,
             help="Prints information about devices on the onboard JTAG chain."),
-    Command("flash-info", handler=print_flash_info,
+    Command("flash-info", handler=print_flash_info, args=[(("--force-offline",), dict(action='store_true'))],
             help="Prints information about the FPGA's attached configuration flash."),
 
     # Flash commands
@@ -390,14 +390,19 @@ def main():
         cmd_parser = sub_parsers.add_parser(command.name, aliases=command.alias, help=command.help)
         cmd_parser.set_defaults(func=command.handler)
         for arg in command.args:
-            cmd_parser.add_argument(arg)
-
+            if isinstance(arg, tuple):
+                cmd_parser.add_argument(*arg[0], **arg[1])
+            else:
+                cmd_parser.add_argument(arg)
+    
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
         return
 
-    device = ApolloDebugger()
+    # Force the FPGA offline by default in most commands to force Apollo mode if needed.
+    force_offline = args.force_offline if "force_offline" in args else True
+    device = ApolloDebugger(force_offline=force_offline)
 
     # Set up python's logging to act as a simple print, for now.
     logging.basicConfig(level=logging.INFO, format="%(message)-s")
