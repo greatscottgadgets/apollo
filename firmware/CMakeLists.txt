@@ -31,6 +31,7 @@ target_sources(${PROJECT} PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/src/boards/${BOARD}/uart.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/mcu/rp2040/dfu.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/mcu/rp2040/usb_descriptors.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/board_rev.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/button.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/console.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/debug_spi.c
