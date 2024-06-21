@@ -13,6 +13,7 @@ jobs:
         - 'qtpy'
         - 'cynthion r0.2'
         - 'cynthion r0.4'
+        - 'raspberry_pi_pico'
         include:
           - target-board: 'cynthion r0.2'
             board-major: 0

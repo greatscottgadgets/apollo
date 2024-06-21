@@ -9,7 +9,6 @@
 
 #include "usb_switch.h"
 #include "apollo_board.h"
-#include <hal/include/hal_gpio.h>
 
 #include <tusb.h>
 #include <bsp/board_api.h>

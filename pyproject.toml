@@ -32,6 +32,12 @@ dependencies = [
     "pyxdg>=0.27",
 ]
 
+[project.optional-dependencies]
+py_ci = [
+    "amaranth==0.4.1",
+    "luna-usb @ git+https://github.com/greatscottgadgets/luna@main"
+]
+
 [project.urls]
 repository = "https://github.com/greatscottgadgets/apollo"
 
@@ -41,3 +47,6 @@ include = ["apollo_fpga*"]
 
 [project.scripts]
 apollo = "apollo_fpga.commands.cli:main"
+
+[tool.pdm.scripts]
+test.cmd = "python -m unittest discover -p jtag_svf.py -v"

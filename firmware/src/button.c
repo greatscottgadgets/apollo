@@ -9,7 +9,6 @@
 #include "usb_switch.h"
 #include "fpga.h"
 #include "apollo_board.h"
-#include <hal/include/hal_gpio.h>
 
 static inline void delay(int cycles)
 {
