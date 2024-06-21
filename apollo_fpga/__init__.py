@@ -79,7 +79,7 @@ class ApolloDebugger:
     }
 
 
-    def __init__(self):
+    def __init__(self, force_offline=False):
         """ Sets up a connection to the debugger. """
 
         # Try to create a connection to our Apollo debug firmware.
@@ -95,6 +95,9 @@ class ApolloDebugger:
             if fpga_device is None:
                 raise DebuggerNotFound("No Apollo or valid LUNA device found. "
                     "The LUNA_USB_IDS environment variable can be used to add custom VID:PID pairs.")
+            elif not force_offline:
+                raise DebuggerNotFound("Apollo stub interface found. "
+                    "Switch the device to Apollo mode or add the `--force-offline` option.")
 
             # ... and now request a USB handoff to Apollo
             try:
