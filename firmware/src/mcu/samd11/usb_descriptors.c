@@ -28,6 +28,8 @@
 #include "tusb.h"
 #include "board_rev.h"
 
+#define MANUFACTURER_STRING_INDEX  1
+#define PRODUCT_STRING_INDEX       2
 #define SERIAL_NUMBER_STRING_INDEX 3
 
 //--------------------------------------------------------------------+
@@ -113,8 +115,8 @@ uint8_t const * tud_descriptor_configuration_cb(uint8_t index)
 char const* string_desc_arr [] =
 {
 	(const char[]) { 0x09, 0x04 }, // 0: is supported language is English (0x0409)
-	"Great Scott Gadgets",         // 1: Manufacturer
-	"Apollo Debugger",             // 2: Product
+	NULL,                          // 1: Manufacturer
+	NULL,                          // 2: Product
 	NULL,                          // 3: Serials, should use chip ID
 };
 
@@ -191,12 +193,12 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
 		if (index == 0xee) {
 			// Microsoft OS 1.0 String Descriptor
 			str = "MSFT100\xee";
+		} else if (index == MANUFACTURER_STRING_INDEX) {
+			str = get_manufacturer_string();
+		} else if (index == PRODUCT_STRING_INDEX) {
+			str = get_product_string();
 		} else {
-			if ( !(index < sizeof(string_desc_arr)/sizeof(string_desc_arr[0])) ) {
-				return NULL;
-			}
-
-			str = string_desc_arr[index];
+			return NULL;
 		}
 
 		// Cap at max char
