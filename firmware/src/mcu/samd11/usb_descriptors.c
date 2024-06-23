@@ -1,8 +1,8 @@
 /*
  * The MIT License (MIT)
  *
+ * Copyright (c) 2019-2024 Great Scott Gadgets <info@greatscottgadgets.com>
  * Copyright (c) 2019 Katherine J. Temkin <kate@ktemkin.com>
- * Copyright (c) 2019 Great Scott Gadgets <ktemkin@greatscottgadgets.com>
  * Copyright (c) 2019 Ha Thach (tinyusb.org)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -27,10 +27,16 @@
 
 #include "tusb.h"
 #include "board_rev.h"
+#include "usb/usb_protocol.h"
 
-#define MANUFACTURER_STRING_INDEX  1
-#define PRODUCT_STRING_INDEX       2
-#define SERIAL_NUMBER_STRING_INDEX 3
+enum
+{
+	STRING_INDEX_LANGUAGE      = 0,
+	STRING_INDEX_MANUFACTURER  = 1,
+	STRING_INDEX_PRODUCT       = 2,
+	STRING_INDEX_SERIAL_NUMBER = 3,
+	STRING_INDEX_MICROSOFT     = 0xee,
+};
 
 //--------------------------------------------------------------------+
 // Device Descriptors
@@ -54,15 +60,17 @@ tusb_desc_device_t desc_device =
 	.idVendor           = 0x1d50,
 	.idProduct          = 0x615c,
 
-	.iManufacturer      = 0x01,
-	.iProduct           = 0x02,
-	.iSerialNumber      = SERIAL_NUMBER_STRING_INDEX,
+	.iManufacturer      = STRING_INDEX_MANUFACTURER,
+	.iProduct           = STRING_INDEX_PRODUCT,
+	.iSerialNumber      = STRING_INDEX_SERIAL_NUMBER,
 
 	.bNumConfigurations = 0x01
 };
 
-// Invoked when received GET DEVICE DESCRIPTOR
-// Application return pointer to descriptor
+/**
+ * Return pointer to device descriptor.
+ * Invoked by GET DEVICE DESCRIPTOR request.
+ */
 uint8_t const * tud_descriptor_device_cb(void)
 {
 	desc_device.bcdDevice = get_board_revision();
@@ -97,9 +105,10 @@ uint8_t const desc_configuration[] =
 };
 
 
-// Invoked when received GET CONFIGURATION DESCRIPTOR
-// Application return pointer to descriptor
-// Descriptor contents must exist long enough for transfer to complete
+/**
+ * Return pointer to configuration descriptor.
+ * Invoked by GET CONFIGURATION DESCRIPTOR request.
+ */
 uint8_t const * tud_descriptor_configuration_cb(uint8_t index)
 {
 	(void) index; // for multiple configurations
@@ -110,31 +119,26 @@ uint8_t const * tud_descriptor_configuration_cb(uint8_t index)
 // String Descriptors
 //--------------------------------------------------------------------+
 
+#define STRING_DESC_LEN(x)    (2 + ((x) * 2))
+#define STRING_DESC_MAX_CHARS 31
+#define SERIAL_NUMBER_CHARS   26
 
-// array of pointer to string descriptors
-char const* string_desc_arr [] =
-{
-	(const char[]) { 0x09, 0x04 }, // 0: is supported language is English (0x0409)
-	NULL,                          // 1: Manufacturer
-	NULL,                          // 2: Product
-	NULL,                          // 3: Serials, should use chip ID
-};
+typedef struct {
+	uint8_t  bLength;
+	uint8_t  bDescriptorType;
+	uint16_t bString[STRING_DESC_MAX_CHARS];
+} desc_string_t __attribute__((aligned(2)));
 
-static uint16_t _desc_str[34];
+static desc_string_t desc_string;
 
+static char serial_string[SERIAL_NUMBER_CHARS + 1];
 
 /**
- * Returns a USB string descriptor that describes this device's unique ID.
+ * Return the microcontroller's unique ID in Base32.
  */
-static uint16_t *get_serial_number_string_descriptor(void)
+static inline char *get_serial_number_string(void)
 {
-	const unsigned serial_number_chars = 26;
-
 	int count = 0;
-
-	//
-	// Read and save the device serial number as normal Base32.
-	//
 
 	// Documented in section 9.3.3 of D21 datasheet, page 32 (rev G), but no header file,
 	// these are not contiguous addresses.
@@ -147,16 +151,12 @@ static uint16_t *get_serial_number_string_descriptor(void)
 
 	uint8_t *tmp = (uint8_t *)ser;
 
-	// Populate the length and string type, as these are the first two bytes
-	// of our descriptor...
-	_desc_str[count++] = (TUSB_DESC_STRING << 8 ) | ((serial_number_chars * 2) + 2);
-
 	// ... and convert our serial number into Base32.
 	int buffer = tmp[0];
 	int next = 1;
 	int bits_left = 8;
 
-	for (unsigned i = 0; i < serial_number_chars; ++i) {
+	for (unsigned i = 0; i < SERIAL_NUMBER_CHARS; ++i) {
 		if (bits_left < 5) {
 			buffer <<= 8;
 			buffer |= tmp[next++] & 0xff;
@@ -164,55 +164,56 @@ static uint16_t *get_serial_number_string_descriptor(void)
 		}
 		bits_left -= 5;
 		int index = (buffer >> bits_left) & 0x1f;
-		_desc_str[count++] = index + (index < 26 ? 'A' : '2' - 26);  // RFC 4648 Base32
+		serial_string[count++] = index + (index < 26 ? 'A' : '2' - 26);  // RFC 4648 Base32
 	}
+	serial_string[count] = 0;
 
-	return _desc_str;
+	return serial_string;
 }
 
-// Invoked when received GET STRING DESCRIPTOR request
-// Application return pointer to descriptor, whose contents must exist long enough for transfer to complete
+/**
+ * Return pointer to string descriptor.
+ * Invoked by GET STRING DESCRIPTOR request.
+ */
 uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
 {
 	uint8_t chr_count;
+	const char* str;
 
-	// If we're looking for the "supported languages" descriptor, return it directly.
-	if (index == 0) {
-		memcpy(&_desc_str[1], string_desc_arr[0], 2);
-		chr_count = 1;
-	}
-	//  If this is a request for the serial number, return the device's unique ID>
-	else if (index == SERIAL_NUMBER_STRING_INDEX) {
-		return get_serial_number_string_descriptor();
-	}
+	desc_string.bDescriptorType = TUSB_DESC_STRING;
 
-	// Otherwise, take the ASCII string provided and encode it as UTF-16.
-	else {
-
-		const char* str;
-		if (index == 0xee) {
-			// Microsoft OS 1.0 String Descriptor
-			str = "MSFT100\xee";
-		} else if (index == MANUFACTURER_STRING_INDEX) {
-			str = get_manufacturer_string();
-		} else if (index == PRODUCT_STRING_INDEX) {
-			str = get_product_string();
-		} else {
-			return NULL;
-		}
-
-		// Cap at max char
-		chr_count = strlen(str);
-		if ( chr_count > 31 ) chr_count = 31;
-
-		for(uint8_t i=0; i<chr_count; i++)
-		{
-			_desc_str[1+i] = str[i];
-		}
+	switch (index) {
+	case STRING_INDEX_LANGUAGE:
+		desc_string.bLength = STRING_DESC_LEN(1);
+		desc_string.bString[0] = USB_LANGID_EN_US;
+		return (uint16_t const *) &desc_string;
+	case STRING_INDEX_MANUFACTURER:
+		str = get_manufacturer_string();
+		break;
+	case STRING_INDEX_PRODUCT:
+		str = get_product_string();
+		break;
+	case STRING_INDEX_SERIAL_NUMBER:
+		str = get_serial_number_string();
+		break;
+	case STRING_INDEX_MICROSOFT:
+		// Microsoft OS 1.0 String Descriptor
+		str = "MSFT100\xee";
+		break;
+	default:
+		return NULL;
 	}
 
-	// first byte is length (including header), second byte is string type
-	_desc_str[0] = (TUSB_DESC_STRING << 8 ) | (2*chr_count + 2);
+	// Cap at max chars.
+	chr_count = strlen(str);
+	if (chr_count > STRING_DESC_MAX_CHARS) chr_count = STRING_DESC_MAX_CHARS;
 
-	return _desc_str;
+	// Encode string as UTF-16.
+	for (uint8_t i=0; i<chr_count; i++) {
+		desc_string.bString[i] = str[i];
+	}
+
+	desc_string.bLength = STRING_DESC_LEN(chr_count);
+
+	return (uint16_t const *) &desc_string;
 }
