@@ -21,6 +21,7 @@ from usb_protocol.types                import USBRequestType, USBRequestRecipien
 from usb_protocol.emitters             import DeviceDescriptorCollection
 from usb_protocol.emitters.descriptors.standard import get_string_descriptor
 
+from apollo_fpga                       import ApolloDebugger
 from .advertiser                       import ApolloAdvertiser, ApolloAdvertiserRequestHandler
 
 VENDOR_ID  = 0x1209
@@ -363,7 +364,7 @@ class FlashBridgeConnection:
         self.interface, self.endpoint = self._find_cfg_flash_bridge(device, get_ep=True)
 
     def __del__(self):
-        self.trigger_reconfiguration()
+        self.request_handoff()
 
     @staticmethod
     def _find_cfg_flash_bridge(dev, get_ep=False):
@@ -378,6 +379,13 @@ class FlashBridgeConnection:
         """ Triggers the target FPGA to reconfigure itself from its flash chip. """
         request_type = usb.ENDPOINT_OUT | usb.RECIP_INTERFACE | usb.TYPE_VENDOR
         return self.device.ctrl_transfer(request_type, 0, wValue=0, wIndex=self.interface)
+
+    def request_handoff(self):
+        """ Requests the gateware to liberate the USB port. """
+        try:
+            ApolloDebugger._request_handoff(self.device)
+        except Exception:
+            pass
 
     def transfer(self, data):
         """ Performs a SPI transfer, targeting the configuration flash."""
