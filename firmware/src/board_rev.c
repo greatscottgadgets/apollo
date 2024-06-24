@@ -23,3 +23,19 @@ __attribute__((weak)) uint16_t get_board_revision(void)
 {
     return (_BOARD_REVISION_MAJOR_ << 8) | _BOARD_REVISION_MINOR_;
 }
+
+/**
+ * Return the manufacturer string.
+ */
+__attribute__((weak)) const char *get_manufacturer_string(void)
+{
+	return "Apollo Project";
+}
+
+/**
+ * Return the product string.
+ */
+__attribute__((weak)) const char *get_product_string(void)
+{
+	return "Apollo Debugger";
+}

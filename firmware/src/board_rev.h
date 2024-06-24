@@ -22,5 +22,14 @@ void detect_hardware_revision(void);
  */
 uint16_t get_board_revision(void);
 
+/**
+ * Return the manufacturer string.
+ */
+const char *get_manufacturer_string(void);
+
+/**
+ * Return the product string.
+ */
+const char *get_product_string(void);
 
 #endif

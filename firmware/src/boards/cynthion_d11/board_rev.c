@@ -105,4 +105,20 @@ uint16_t get_board_revision(void)
     return revision;
 }
 
+/**
+ * Return the manufacturer string.
+ */
+const char *get_manufacturer_string(void)
+{
+        return (gsg_production) ? "Great Scott Gadgets" : "Apollo Project";
+}
+
+/**
+ * Return the product string.
+ */
+const char *get_product_string(void)
+{
+        return (gsg_production) ? "Cynthion Apollo Debugger" : "Apollo Debugger";
+}
+
 #endif
