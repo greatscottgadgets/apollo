@@ -84,7 +84,10 @@ def print_device_info(device, args):
     logging.info(f"\tSerial number: {device.serial_number}")
     logging.info(f"\tFirmware version: {device.get_firmware_version()}")
     logging.info(f"\tUSB API version: {device.get_usb_api_version_string()}")
-
+    with device.jtag as jtag:
+        programmer = device.create_jtag_programmer(jtag)
+        flash_uid = programmer.read_flash_uid()
+    logging.info(f"\tFlash UID: {flash_uid:016x}")
 
 def print_chain_info(device, args):
     """ Command that prints information about devices connected to the scan chain to the console. """
@@ -240,17 +243,19 @@ def read_back_flash(device, args):
 def print_flash_info(device, args):
     """ Command that prints information about the currently connected FPGA's configuration flash. """
     ensure_unconfigured(device)
+    serial_number = device.serial_number
 
     with device.jtag as jtag:
         programmer = device.create_jtag_programmer(jtag)
         manufacturer, device = programmer.read_flash_id()
+        unique_id = programmer.read_flash_uid()
 
         if manufacturer == 0xFF:
             logging.info("No flash detected.")
             return
 
-        logging.info("")
-        logging.info(f"Detected an FPGA-connected SPI configuration flash!")
+        logging.info(f"Device serial number: {serial_number}")
+        logging.info("Detected an FPGA-connected SPI configuration flash!")
 
         try:
             logging.info(f"\tManufacturer: {JEDEC_MANUFACTURERS[manufacturer]} ({manufacturer:02x})")
@@ -261,6 +266,8 @@ def print_flash_info(device, args):
             logging.info(f"\tDevice: {JEDEC_PARTS[device]} ({device:06x})")
         except KeyError:
             logging.info(f"\tUnknown device ({device:06x}).")
+
+        logging.info(f"\tUnique ID: {unique_id:016x}")
 
         logging.info("")
 
