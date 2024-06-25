@@ -1,8 +1,8 @@
 /*
  * The MIT License (MIT)
  *
+ * Copyright (c) 2019-2024 Great Scott Gadgets <info@greatscottgadgets.com>
  * Copyright (c) 2019 Katherine J. Temkin <kate@ktemkin.com>
- * Copyright (c) 2019 Great Scott Gadgets <ktemkin@greatscottgadgets.com>
  * Copyright (c) 2019 Ha Thach (tinyusb.org)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -44,7 +44,7 @@ tusb_desc_device_t const desc_device =
 
 	.bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
 
-	// These are a unique VID/PID for development LUNA boards.
+	// These are a unique VID/PID for Apollo on Daisho.
 	// TODO: should we replace these with an OpenMoko VID/PID pair, to match other GSG products?
 	.idVendor           = 0x16d0,
 	.idProduct          = 0x05a5,
@@ -108,7 +108,7 @@ char const* string_desc_arr [] =
 {
 	(const char[]) { 0x09, 0x04 },    // 0: is supported language is English (0x0409)
 	"Great Scott Gadgets",            // 1: Manufacturer
-	"LUNA::Daisho Debug Controller",  // 2: Product
+	"Daisho Apollo Debugger",         // 2: Product
 	"daisho-007",                     // 3: Serials, should use chip ID // FIXME: do that
 	"UART Bridge",                    // 4: CDC Interface
 	"DFU Runtime"                     // 5: DFU Interface

@@ -5,7 +5,7 @@
  * keep code size small for a potential switch to a SAMD11. This likely means we
  * want to avoid the overhead of the libgreat comms API.
  *
- * This file is part of LUNA.
+ * This file is part of Apollo.
  *
  * Copyright (c) 2019-2024 Great Scott Gadgets <info@greatscottgadgets.com>
  * SPDX-License-Identifier: BSD-3-Clause

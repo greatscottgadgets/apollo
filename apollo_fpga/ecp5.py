@@ -1,10 +1,10 @@
 #
-# This file is part of LUNA
+# This file is part of Apollo.
 #
-# Copyright (c) 2020 Great Scott Gadgets <info@greatscottgadgets.com>
+# Copyright (c) 2020-2024 Great Scott Gadgets <info@greatscottgadgets.com>
 # SPDX-License-Identifier: BSD-3-Clause
 
-""" ECP5 configuration code for LUNA. """
+""" ECP5 configuration. """
 
 from logging import disable
 from re import U
@@ -423,9 +423,12 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
             # Perform any pre-configuration tasks necessary.
             self._perform_preconfiguration_tasks()
 
-            # Capture the part ID, and then verify that our bitstream matches.
-            # FIXME: use the bitstream file to get the ID, not our exected LUNA ID
+            # Read the part ID from the FPGA and verify that it is in the valid range.
             self._capture_part_id()
+
+            # We could check that the FPGA's part ID matches the bitstream's
+            # part ID at this point, but for now we try to proceed without
+            # verification. If there is a mismatch, configuration will fail.
             #self._execute_command(self.Opcode.VERIFY_ID, b"\x21\x11\x10\x43")
 
             # ???
