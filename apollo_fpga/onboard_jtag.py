@@ -1,7 +1,7 @@
 #
-# This file is part of LUNA
+# This file is part of Apollo.
 #
-# Copyright (c) 2020 Great Scott Gadgets <info@greatscottgadgets.com>
+# Copyright (c) 2020-2024 Great Scott Gadgets <info@greatscottgadgets.com>
 # SPDX-License-Identifier: BSD-3-Clause
 
 """ JTAG definitions for on-board JTAG devices. """
@@ -10,7 +10,7 @@ from .jtag import JTAGDevice
 
 
 #
-# ECP5 FPGAs that can be populated onto LUNA boards.
+# ECP5 FPGAs that can be populated onto Cynthion boards.
 #
 
 class LatticeECP5_12F(JTAGDevice):

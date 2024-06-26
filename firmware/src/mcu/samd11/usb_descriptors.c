@@ -56,7 +56,7 @@ tusb_desc_device_t desc_device =
 
 	.bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
 
-	// These are a unique VID/PID for development LUNA boards.
+	// These are a unique VID/PID for Apollo.
 	.idVendor           = 0x1d50,
 	.idProduct          = 0x615c,
 

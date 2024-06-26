@@ -58,7 +58,7 @@ class ApolloDebugger:
     LED_PATTERN_UPLOAD = 50
 
 
-    # External boards (non-LUNA boards) are indicated with a Major revision of 0xFF.
+    # External boards (non-Cynthion boards) are indicated with a Major revision of 0xFF.
     # Their minor revision then encodes the board type.
     EXTERNAL_BOARD_MAJOR = 0xFF
     EXTERNAL_BOARD_NAMES = {
@@ -73,7 +73,7 @@ class ApolloDebugger:
     }
 
 
-    # LUNA subdevices (specialized variants of the LUNA board) use a major of 0xFE.
+    # Cynthion subdevices (specialized variants Cynthion) use a major of 0xFE.
     SUBDEVICE_MAJORS = {
         0xFE: "Amalthea"
     }
@@ -93,8 +93,7 @@ class ApolloDebugger:
             # First, find the candidate device...
             fpga_device = self._find_device(self.LUNA_USB_IDS, custom_match=self._device_has_stub_iface)
             if fpga_device is None:
-                raise DebuggerNotFound("No Apollo or valid LUNA device found. "
-                    "The LUNA_USB_IDS environment variable can be used to add custom VID:PID pairs.")
+                raise DebuggerNotFound("No Apollo device or stub interface found.")
             elif not force_offline:
                 raise DebuggerNotFound("Apollo stub interface found. "
                     "Switch the device to Apollo mode or add the `--force-offline` option.")
@@ -177,7 +176,7 @@ class ApolloDebugger:
 
 
     def get_fpga_type(self):
-        """ Returns a string indicating the type of FPGA populated on the connected LUNA board.
+        """ Returns a string indicating the type of FPGA populated on the connected Apollo board.
 
         The returned format is the same as used in a nMigen platform file; and can be used to override
         a platform's device type.
@@ -215,16 +214,16 @@ class ApolloDebugger:
     def get_hardware_name(self):
         """ Returns a string describing this piece of hardware. """
 
-        # If this is a non-LUNA board, we'll look up its name in our table.
+        # If this is a non-Cynthion board, we'll look up its name in our table.
         if self.major == self.EXTERNAL_BOARD_MAJOR:
             return self.EXTERNAL_BOARD_NAMES[self.minor]
 
-        # If this is a non-LUNA board, we'll look up its name in our table.
+        # If this is a non-Cynthion board, we'll look up its name in our table.
         if self.major in self.SUBDEVICE_MAJORS:
             product_name = self.SUBDEVICE_MAJORS[self.major]
             major        = 0 # For now?
         else:
-            product_name = "LUNA"
+            product_name = "Cynthion"
             major        = self.major
 
         # Otherwise, identify it by its revision number.
@@ -232,14 +231,14 @@ class ApolloDebugger:
 
 
     def get_compatibility_string(self):
-        """ Returns 'LUNA' for a LUNA board; or 'LUNA-compatible' for supported external board."""
+        """ Returns 'Cynthion' for a Cynthion board; or 'Apollo' for supported external board."""
 
         if self.major == self.EXTERNAL_BOARD_MAJOR:
-            return 'LUNA-compatible'
+            return 'Apollo'
         elif self.major in self.SUBDEVICE_MAJORS:
             return self.SUBDEVICE_MAJORS[self.major]
 
-        return 'LUNA'
+        return 'Cynthion'
 
 
     def create_jtag_programmer(self, jtag_chain):

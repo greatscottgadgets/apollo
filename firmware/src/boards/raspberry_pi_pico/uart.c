@@ -1,9 +1,9 @@
 /**
  * UART driver code.
  *
- * This file is part of LUNA.
+ * This file is part of Apollo.
  *
- * Copyright (c) 2020 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2020-2024 Great Scott Gadgets <info@greatscottgadgets.com>
  * Copyright (c) 2024 Markus Blechschmidt <marble@computer-in.love>
  * SPDX-License-Identifier: BSD-3-Clause
  */

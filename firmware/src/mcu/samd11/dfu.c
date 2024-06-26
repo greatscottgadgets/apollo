@@ -3,9 +3,9 @@
  *
  * This file provides support for automatically rebooting into the DFU bootloader.
  *
- * This file is part of LUNA.
+ * This file is part of Apollo.
  *
- * Copyright (c) 2020 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2020-2024 Great Scott Gadgets <info@greatscottgadgets.com>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 

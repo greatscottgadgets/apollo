@@ -1,10 +1,10 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2019 Katherine J. Temkin <kate@ktemkin.com>
- * Copyright (c) 2019 Great Scott Gadgets <ktemkin@greatscottgadgets.com>
- * Copyright (c) 2019 Ha Thach (tinyusb.org)
  * Copyright (c) 2024 Markus Blechschmidt <marble@computer-in.love>
+ * Copyright (c) 2019 Great Scott Gadgets <info@greatscottgadgets.com>
+ * Copyright (c) 2019 Katherine J. Temkin <kate@ktemkin.com>
+ * Copyright (c) 2019 Ha Thach (tinyusb.org)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -61,7 +61,7 @@ tusb_desc_device_t const desc_device =
 
 	.bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
 
-	// These are a unique VID/PID for development LUNA boards.
+	// These are a unique VID/PID for Apollo.
 	.idVendor           = 0x1d50,
 	.idProduct          = 0x615c,
 	.bcdDevice          = (_BOARD_REVISION_MAJOR_ << 8) | _BOARD_REVISION_MINOR_,
