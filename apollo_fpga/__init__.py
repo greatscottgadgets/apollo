@@ -8,6 +8,7 @@ import os
 import time
 import usb.core
 import platform
+import errno
 
 from .jtag  import JTAGChain
 from .spi   import DebugSPIConnection
@@ -47,6 +48,7 @@ class ApolloDebugger:
     if os.getenv("LUNA_USB_IDS"):
         LUNA_USB_IDS += [tuple([int(x, 16) for x in os.getenv("LUNA_USB_IDS").split(":")])]
 
+    REQUEST_GET_ID                  = 0xa0
     REQUEST_SET_LED_PATTERN         = 0xa1
     REQUEST_GET_FIRMWARE_VERSION    = 0xa2
     REQUEST_GET_USB_API_VERSION     = 0xa3
@@ -83,7 +85,7 @@ class ApolloDebugger:
         """ Sets up a connection to the debugger. """
 
         # Try to create a connection to our Apollo debug firmware.
-        device = self._find_device(self.APOLLO_USB_IDS)
+        device = self._find_device(self.APOLLO_USB_IDS, custom_match=self._device_has_apollo_id)
 
         # If Apollo VID/PID is not found, try to find a gateware VID/PID with a valid Apollo stub
         # interface. If found, request the gateware to liberate the USB port. In devices with a 
@@ -106,7 +108,7 @@ class ApolloDebugger:
 
             # Wait for Apollo to enumerate and try again
             time.sleep(2) 
-            device = self._find_device(self.APOLLO_USB_IDS)
+            device = self._find_device(self.APOLLO_USB_IDS, custom_match=self._device_has_apollo_id)
             if device is None:
                 raise DebuggerNotFound("Handoff was requested, but Apollo is not available")
 
@@ -161,6 +163,23 @@ class ApolloDebugger:
             if stub_if is not None:
                 return stub_if if return_iface else True
         return None if return_iface else False
+
+    @staticmethod
+    def _device_has_apollo_id(device):
+        """ Checks if a device identifies itself as Apollo."""
+        request_type = usb.ENDPOINT_IN | usb.RECIP_DEVICE | usb.TYPE_VENDOR
+        try:
+            response = device.ctrl_transfer(request_type, ApolloDebugger.REQUEST_GET_ID, data_or_wLength=256, timeout=500)
+            apollo_id = bytes(response).decode('utf-8').split('\x00')[0]
+            return True if "Apollo" in apollo_id else False
+        except usb.USBError as e:
+            if e.errno == errno.EPIPE:
+                # A pipe error occurs when the device does not implement a
+                # vendor request with a number matching REQUEST_GET_ID. This is
+                # the expected result if the device is running Saturn-V.
+                return False
+            else:
+                raise
 
     def detect_connected_version(self):
         """ Attempts to determine the revision of the connected hardware.
