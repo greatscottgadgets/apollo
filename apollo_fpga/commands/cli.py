@@ -358,7 +358,7 @@ COMMANDS = [
     # Flash commands
     Command("flash-erase", handler=erase_flash,
             help="Erases the contents of the FPGA's flash memory."),
-    Command("flash-program", alias=["flash"], args=["file", "--offset", (("--fast",), dict(action='store_true'))], 
+    Command("flash-program", args=["file", "--offset", (("--fast",), dict(action='store_true'))],
             handler=program_flash, help="Programs the target bitstream onto the FPGA's configuration flash."),
     Command("flash-fast", args=["file", "--offset"], handler=program_flash_fast_deprecated,
             help="Programs a bitstream onto the FPGA's configuration flash using a SPI bridge."),
