@@ -26,6 +26,7 @@
  */
 
 #include "tusb.h"
+#include "apollo_board.h"
 
 #define SERIAL_NUMBER_STRING_INDEX 3
 
@@ -44,10 +45,8 @@ tusb_desc_device_t const desc_device =
 
 	.bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
 
-	// These are a unique VID/PID for Apollo on Daisho.
-	// TODO: should we replace these with an OpenMoko VID/PID pair, to match other GSG products?
-	.idVendor           = 0x16d0,
-	.idProduct          = 0x05a5,
+	.idVendor           = USB_VID,
+	.idProduct          = USB_PID,
 	.bcdDevice          = (_BOARD_REVISION_MAJOR_ << 8) | _BOARD_REVISION_MINOR_,
 
 	.iManufacturer      = 0x01,

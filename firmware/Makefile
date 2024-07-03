@@ -95,7 +95,7 @@ BUILD := _build
 
 # Flashing using Saturn-V.
 dfu: _build/$(BOARD)/firmware.bin
-	dfu-util -a 0 -d 1d50:615c -D $< || dfu-util -a 0 -d 16d0:05a5 -D $<
+	dfu-util -a 0 -d 1d50:615c -D $< || dfu-util -a 0 -d 1209:0010 -D $<
 
 
 # Flashing using the Black Magic Probe,

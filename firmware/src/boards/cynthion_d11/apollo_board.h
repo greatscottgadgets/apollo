@@ -12,6 +12,9 @@
 #include <hal/include/hal_gpio.h>
 #include <stdbool.h>
 
+#define USB_VID 0x1d50
+#define USB_PID 0x615c
+
 #define BOARD_HAS_PROGRAM_BUTTON
 #define BOARD_HAS_SHARED_USB
 

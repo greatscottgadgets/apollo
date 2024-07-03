@@ -27,6 +27,7 @@
  */
 
 #include "tusb.h"
+#include "apollo_board.h"
 
 #include "pico.h"
 #include "pico/unique_id.h"
@@ -61,9 +62,8 @@ tusb_desc_device_t const desc_device =
 
 	.bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
 
-	// These are a unique VID/PID for Apollo.
-	.idVendor           = 0x1d50,
-	.idProduct          = 0x615c,
+	.idVendor           = USB_VID,
+	.idProduct          = USB_PID,
 	.bcdDevice          = (_BOARD_REVISION_MAJOR_ << 8) | _BOARD_REVISION_MINOR_,
 
 	.iManufacturer      = 0x01,
