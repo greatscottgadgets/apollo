@@ -6,22 +6,29 @@ Apollo consists of two main parts: firmware for the on-board debug microcontroll
 
 ## Building and Installing Firmware
 
-First activate Cynthion's Saturn-V bootloader by holding down the PROGRAM button while connecting power or while pressing and releasing the RESET button. LED C will blink, indicating that Saturn-V is running.
+To upgrade Apollo firmware on a Cynthion it is typically not necessary to compile the firmware yourself. Instead follow [Upgrading Cynthion Device Firmware])https://cynthion.readthedocs.io/en/latest/getting_started.html#upgrading-cynthion-device-firmware).
 
-To compile for the latest Cynthion hardware revision, type:
+To compile and install onto Cynthion run:
 
 ```
 $ cd apollo/firmware
 $ make APOLLO_BOARD=cynthion get-deps dfu
 ```
 
-This will download dependencies, compile the firmware, and install it onto Cynthion with Saturn-V.
+This will download dependencies, compile the firmware, and install it onto Cynthion with [Saturn-V](https://github.com/greatscottgadgets/saturn-v).
 
-Alternatively you can use variables to specify the hardware revision:
+Alternatively you can use variables to specify an older hardware revision:
 
 ```
 $ cd apollo/firmware
-$ make APOLLO_BOARD=cynthion BOARD_REVISION_MAJOR=1 BOARD_REVISION_MINOR=3 get-deps dfu
+$ make APOLLO_BOARD=cynthion BOARD_REVISION_MAJOR=0 BOARD_REVISION_MINOR=3 get-deps dfu
 ```
 
-Once installation is complete, LED E should blink, indicating that Apollo is running and idle.
+Once installation is complete, LED A should activate, indicating that Apollo is running.
+
+## Installing Host Software
+
+To install the apollo-fpga Python module and the `apollo` command-line tool or to upgrade them to the latest version run:
+```
+pip install --upgrade apollo-fpga
+```
