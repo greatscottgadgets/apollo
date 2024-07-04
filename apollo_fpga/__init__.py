@@ -37,12 +37,16 @@ class ApolloDebugger:
     """ Class representing a link to an Apollo Debug Module. """
 
     # VID/PID pairs for Apollo and gateware.
-    APOLLO_USB_IDS = [(0x1d50, 0x615c)]
+    APOLLO_USB_IDS = [(0x1d50, 0x615c), (0x1209, 0x0010)]
     LUNA_USB_IDS   = [(0x1d50, 0x615b)]
 
-    # Add pid.codes VID/PID pairs with PID from 0x0001 to 0x0010
-    for i in range(16):
+    # Add pid.codes test VID/PID pairs with PID from 0x0001 to 0x0005 used in
+    # LUNA example gateware.
+    for i in range(5):
         LUNA_USB_IDS += [(0x1209, i+1)]
+
+    # Add pid.codes test VID/PID used by flash bridge.
+    LUNA_USB_IDS += [(0x1209, 0x000f)]
 
     # If we have a LUNA_USB_IDS variable, we can use it to find the LUNA device.
     if os.getenv("LUNA_USB_IDS"):

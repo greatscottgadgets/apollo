@@ -18,6 +18,10 @@
 #include "hardware/sync.h"
 
 
+/* pid.codes test VID/PID */
+#define USB_VID 0x1209
+#define USB_PID 0x0010
+
 #define __NOP() {asm volatile("nop");}
 
 

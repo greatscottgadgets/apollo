@@ -28,6 +28,7 @@
 #include "tusb.h"
 #include "board_rev.h"
 #include "usb/usb_protocol.h"
+#include "apollo_board.h"
 
 enum
 {
@@ -56,9 +57,8 @@ tusb_desc_device_t desc_device =
 
 	.bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
 
-	// These are a unique VID/PID for Apollo.
-	.idVendor           = 0x1d50,
-	.idProduct          = 0x615c,
+	.idVendor           = USB_VID,
+	.idProduct          = USB_PID,
 
 	.iManufacturer      = STRING_INDEX_MANUFACTURER,
 	.iProduct           = STRING_INDEX_PRODUCT,

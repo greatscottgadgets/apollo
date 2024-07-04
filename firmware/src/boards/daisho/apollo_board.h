@@ -10,6 +10,10 @@
 #ifndef __APOLLO_BOARD_H__
 #define __APOLLO_BOARD_H__
 
+/* pid.codes test VID/PID */
+#define USB_VID 0x1209
+#define USB_PID 0x0010
+
 #define _BOARD_HAS_DEBUG_SPI
 
 #include <chip.h>

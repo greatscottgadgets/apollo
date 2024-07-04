@@ -13,6 +13,10 @@
 #include <hal/include/hal_gpio.h>
 #include <stdbool.h>
 
+/* pid.codes test VID/PID */
+#define USB_VID 0x1209
+#define USB_PID 0x0010
+
 /**
  * TODO: the qtpy board has a single RGB neopixel.
  */
