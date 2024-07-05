@@ -299,7 +299,7 @@ class FlashBridge(Elaboratable):
         m.submodules.car = platform.clock_domain_generator()
 
         # Create our USB device interface...
-        phy_name = platform.default_usb_connection
+        phy_name = platform.apollo_gateware_phy
         ulpi = platform.request(phy_name)
         m.submodules.usb = usb = USBDevice(bus=ulpi)
 
