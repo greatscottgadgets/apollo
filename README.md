@@ -6,7 +6,7 @@ Apollo consists of two main parts: firmware for the on-board debug microcontroll
 
 ## Building and Installing Firmware
 
-To upgrade Apollo firmware on a Cynthion it is typically not necessary to compile the firmware yourself. Instead follow [Upgrading Cynthion Device Firmware])https://cynthion.readthedocs.io/en/latest/getting_started.html#upgrading-cynthion-device-firmware).
+To upgrade Apollo firmware on a Cynthion it is typically not necessary to compile the firmware yourself. Instead follow [Upgrading Cynthion Device Firmware](https://cynthion.readthedocs.io/en/latest/getting_started.html#upgrading-cynthion-device-firmware).
 
 To compile and install onto Cynthion run:
 
