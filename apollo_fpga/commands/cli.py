@@ -84,6 +84,8 @@ def print_device_info(device, args):
     logging.info(f"\tSerial number: {device.serial_number}")
     logging.info(f"\tFirmware version: {device.get_firmware_version()}")
     logging.info(f"\tUSB API version: {device.get_usb_api_version_string()}")
+
+    ensure_unconfigured(device)
     with device.jtag as jtag:
         programmer = device.create_jtag_programmer(jtag)
         flash_uid = programmer.read_flash_uid()
