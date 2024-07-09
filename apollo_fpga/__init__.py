@@ -92,7 +92,7 @@ class ApolloDebugger:
         device = self._find_device(self.APOLLO_USB_IDS, custom_match=self._device_has_apollo_id)
 
         # If Apollo VID/PID is not found, try to find a gateware VID/PID with a valid Apollo stub
-        # interface. If found, request the gateware to liberate the USB port. In devices with a 
+        # interface. If found, request the gateware to liberate the USB port. In devices with a
         # shared port, this effectively hands off the USB port to Apollo.
         if device is None:
 
@@ -111,7 +111,7 @@ class ApolloDebugger:
                 raise DebuggerNotFound(f"Handoff request failed: {e.strerror}")
 
             # Wait for Apollo to enumerate and try again
-            time.sleep(2) 
+            time.sleep(2)
             device = self._find_device(self.APOLLO_USB_IDS, custom_match=self._device_has_apollo_id)
             if device is None:
                 raise DebuggerNotFound("Handoff was requested, but Apollo is not available")
@@ -150,10 +150,29 @@ class ApolloDebugger:
 
     @staticmethod
     def _find_device(ids, custom_match=None):
+        import usb.backend.libusb1
+
+        # In Windows, we need to specify the libusb library location to create a backend.
+        if platform.system() == "Windows":
+            # Determine the path to libusb-1.0.dll.
+            try:
+                from importlib_resources import files # <= 3.8
+            except:
+                from importlib.resources import files # >= 3.9
+            libusb_dll = os.path.join(files("usb1"), "libusb-1.0.dll")
+
+            # Create a backend by explicitly passing the path to libusb_dll.
+            backend = usb.backend.libusb1.get_backend(find_library=lambda x: libusb_dll)
+        else:
+            # On other systems we can just use the default backend.
+            backend = usb.backend.libusb1.get_backend()
+
+        # Find the device.
         for vid, pid in ids:
-            device = usb.core.find(idVendor=vid, idProduct=pid, custom_match=custom_match)
+            device = usb.core.find(backend=backend, idVendor=vid, idProduct=pid, custom_match=custom_match)
             if device is not None:
                 return device
+
         return None
 
     @staticmethod
@@ -282,7 +301,7 @@ class ApolloDebugger:
     def create_jtag_spi(self, jtag_chain):
         """ Returns a JTAG-over-SPI connection for the given device. """
 
-        # If this is an external programmer, we don't yet know how to create a JTAG-SPI 
+        # If this is an external programmer, we don't yet know how to create a JTAG-SPI
         # interface for it. For now, assume we can't.
         if self.major == self.EXTERNAL_BOARD_MAJOR:
             return None, None

@@ -34,7 +34,7 @@ MAX_BULK_PACKET_SIZE = 512
 class SPIStreamController(Elaboratable):
     """ Class that drives a SPI bus with data from input stream packets.
     Data received from the device is returned as another packet."""
-    
+
     def __init__(self):
         self.period = 4  # powers of two only
         self.bus    = SPIBus()
@@ -56,7 +56,7 @@ class SPIStreamController(Elaboratable):
             sck_fall.eq( sck_d & ~self.bus.sck),  # falling edge
             sck_rise.eq(~sck_d &  self.bus.sck),  # rising edge
         ]
-        
+
         # I/O shift registers, bit counter and last flag
         shreg_o = Signal(8)
         shreg_i = Signal(8)
@@ -114,7 +114,7 @@ class SPIStreamController(Elaboratable):
                             m.next = 'END'
                         with m.Elif(~self.input.valid):
                             m.next = 'WAIT'
-            
+
             with m.State("END"):
                 m.d.comb += [
                     self.input.ready    .eq(0),
@@ -134,7 +134,7 @@ class SPIStreamController(Elaboratable):
             ]
 
         return m
-    
+
 
 class FlashBridgeRequestHandler(USBRequestHandler):
     """ Request handler that can trigger a FPGA reconfiguration. """
@@ -168,7 +168,7 @@ class FlashBridgeRequestHandler(USBRequestHandler):
 
                     # Once the receive is complete, respond with an ACK.
                     with m.If(interface.rx_ready_for_response):
-                        m.d.comb += interface.handshakes_out.ack.eq(1)    
+                        m.d.comb += interface.handshakes_out.ack.eq(1)
 
                     # If we reach the status stage, send a ZLP.
                     with m.If(interface.status_requested):
@@ -181,7 +181,7 @@ class FlashBridgeRequestHandler(USBRequestHandler):
 class FlashBridgeSubmodule(Elaboratable):
     """ Implements gateware for the USB<->SPI bridge. Intended to use as a submodule
         See example in FlashBridge """
-    
+
     def __init__(self, endpoint):
         # Endpoint number for the in/out stream endpoints
         self.endpoint = endpoint
@@ -354,12 +354,15 @@ class FlashBridgeNotFound(IOError):
 class FlashBridgeConnection:
     def __init__(self):
         # Try to create a connection to our configuration flash bridge.
-        device = usb.core.find(idVendor=VENDOR_ID, idProduct=PRODUCT_ID, custom_match=self._find_cfg_flash_bridge)
+        device = ApolloDebugger._find_device(
+            ids=[(VENDOR_ID, PRODUCT_ID)],
+            custom_match=self._find_cfg_flash_bridge
+        )
 
         # If we couldn't find the bridge, bail out.
         if device is None:
             raise FlashBridgeNotFound("Unable to find device")
-        
+
         self.device = device
         self.interface, self.endpoint = self._find_cfg_flash_bridge(device, get_ep=True)
 
