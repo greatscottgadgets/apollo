@@ -356,7 +356,8 @@ class FlashBridgeConnection:
         # Try to create a connection to our configuration flash bridge.
         device = ApolloDebugger._find_device(
             ids=[(VENDOR_ID, PRODUCT_ID)],
-            custom_match=self._find_cfg_flash_bridge
+            custom_match=self._find_cfg_flash_bridge,
+            timeout=5000
         )
 
         # If we couldn't find the bridge, bail out.
