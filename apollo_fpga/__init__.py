@@ -111,8 +111,7 @@ class ApolloDebugger:
                 raise DebuggerNotFound(f"Handoff request failed: {e.strerror}")
 
             # Wait for Apollo to enumerate and try again
-            time.sleep(2)
-            device = self._find_device(self.APOLLO_USB_IDS, custom_match=self._device_has_apollo_id)
+            device = self._find_device(self.APOLLO_USB_IDS, custom_match=self._device_has_apollo_id, timeout=5000)
             if device is None:
                 raise DebuggerNotFound("Handoff was requested, but Apollo is not available")
 
@@ -149,7 +148,7 @@ class ApolloDebugger:
         device.ctrl_transfer(request_type, REQUEST_APOLLO_ADV_STOP, wIndex=intf_number, timeout=5000)
 
     @staticmethod
-    def _find_device(ids, custom_match=None):
+    def _find_device(ids, custom_match=None, timeout=0):
         import usb.backend.libusb1
 
         # In Windows, we need to specify the libusb library location to create a backend.
@@ -168,11 +167,18 @@ class ApolloDebugger:
             backend = usb.backend.libusb1.get_backend()
 
         # Find the device.
-        for vid, pid in ids:
-            device = usb.core.find(backend=backend, idVendor=vid, idProduct=pid, custom_match=custom_match)
-            if device is not None:
-                return device
-
+        wait = 0
+        while True:
+            for vid, pid in ids:
+                device = usb.core.find(backend=backend, idVendor=vid, idProduct=pid, custom_match=custom_match)
+                if device is not None:
+                    return device
+            # Should we wait and try again?
+            if wait >= timeout:
+                break
+            time.sleep(0.5)
+            wait += 500
+            
         return None
 
     @staticmethod
