@@ -241,7 +241,7 @@ def read_back_flash(device, args):
 
 def print_flash_info(device, args):
     """ Command that prints information about the currently connected FPGA's configuration flash. """
-    ensure_unconfigured(device)
+    device.force_fpga_offline()
     serial_number = device.serial_number
 
     with device.jtag as jtag:
@@ -351,7 +351,7 @@ COMMANDS = [
             help="Print device info.", ),
     Command("jtag-scan", handler=print_chain_info,
             help="Prints information about devices on the onboard JTAG chain."),
-    Command("flash-info", handler=print_flash_info, args=[(("--force-offline",), dict(action='store_true'))],
+    Command("flash-info", handler=print_flash_info,
             help="Prints information about the FPGA's attached configuration flash."),
 
     # Flash commands
