@@ -416,10 +416,17 @@ def main():
 
     # Force the FPGA offline by default in most commands to force Apollo mode if needed.
     force_offline = args.force_offline if "force_offline" in args else True
-    device = ApolloDebugger(force_offline=force_offline)
 
     # Set up python's logging to act as a simple print, for now.
     logging.basicConfig(level=logging.INFO, format="%(message)-s")
+
+    if args.command == "info":
+        if ApolloDebugger.print_info(force_offline=force_offline, out=logging.info):
+            if not force_offline:
+                logging.info(f"For additional device information use the --force-offline option.")
+        return
+
+    device = ApolloDebugger(force_offline=force_offline)
 
     # Execute the relevant command.
     args.func(device, args)
