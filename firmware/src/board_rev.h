@@ -32,4 +32,9 @@ const char *get_manufacturer_string(void);
  */
 const char *get_product_string(void);
 
+/**
+ * Return the raw ADC value.
+ */
+uint16_t get_adc_reading(void);
+
 #endif

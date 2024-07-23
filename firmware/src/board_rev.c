@@ -39,3 +39,11 @@ __attribute__((weak)) const char *get_product_string(void)
 {
 	return "Apollo Debugger";
 }
+
+/**
+ * Return the raw ADC value.
+ */
+__attribute__((weak)) uint16_t get_adc_reading(void)
+{
+    return 0;
+}

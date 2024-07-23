@@ -21,6 +21,7 @@
 
 static uint16_t revision = CYNTHION_REV_UNKNOWN;
 static bool gsg_production = false;
+static uint16_t reading = 0xffff;
 
 /**
  * Detect hardware revision using Cynthion pin straps.
@@ -50,7 +51,7 @@ void detect_hardware_revision(void)
     // Retrieve a single ADC reading.
     hri_adc_set_SWTRIG_START_bit(ADC);
 	while (!hri_adc_get_interrupt_RESRDY_bit(ADC));
-	uint16_t reading = hri_adc_read_RESULT_reg(ADC);
+	reading = hri_adc_read_RESULT_reg(ADC);
 
     // Convert ADC measurement to per mille of the reference voltage.
     uint32_t permille = (((uint32_t)reading * 1000) + 20480) >> 12;
@@ -119,6 +120,14 @@ const char *get_manufacturer_string(void)
 const char *get_product_string(void)
 {
         return (gsg_production) ? "Cynthion Apollo Debugger" : "Apollo Debugger";
+}
+
+/**
+ * Return the raw ADC value.
+ */
+uint16_t get_adc_reading(void)
+{
+    return reading;
 }
 
 #endif
