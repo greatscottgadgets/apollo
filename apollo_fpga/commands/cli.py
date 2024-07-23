@@ -18,8 +18,9 @@ import argparse
 from collections import namedtuple
 import xdg.BaseDirectory
 from functools import partial
+import deprecation
 
-from apollo_fpga import ApolloDebugger
+from apollo_fpga import ApolloDebugger, __version__
 from apollo_fpga.jtag import JTAGChain, JTAGPatternError
 from apollo_fpga.ecp5 import ECP5_JTAGProgrammer, ECP5FlashBridgeProgrammer
 from apollo_fpga.onboard_jtag import *
@@ -76,6 +77,9 @@ JEDEC_PARTS = {
 }
 
 
+@deprecation.deprecated(deprecated_in="1.1.0", removed_in="2.0.0",
+                        current_version=__version__,
+                        details="Use ApolloDebugger.print_info() instead.")
 def print_device_info(device, args):
     """ Command that prints information about devices connected to the scan chain to the console. """
 

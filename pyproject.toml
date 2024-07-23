@@ -29,6 +29,7 @@ dependencies = [
     "pyvcd>=0.2.4",
     "prompt-toolkit>3.0.16",
     "pyxdg>=0.27",
+    "deprecation>=2.1.0",
 ]
 dynamic = ["version"]
 
