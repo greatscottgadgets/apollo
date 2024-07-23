@@ -21,6 +21,7 @@
 #include "debug_spi.h"
 #include "usb_switch.h"
 #include "fpga_adv.h"
+#include "board_rev.h"
 
 #define USB_API_MAJOR 1
 #define USB_API_MINOR 1
@@ -32,6 +33,7 @@ enum {
 	VENDOR_REQUEST_SET_LED_PATTERN         = 0xa1,
 	VENDOR_REQUEST_GET_FIRMWARE_VERSION    = 0xa2,
 	VENDOR_REQUEST_GET_USB_API_VERSION     = 0xa3,
+	VENDOR_REQUEST_GET_ADC_READING         = 0xa4,
 
 	//
 	// JTAG requests.
@@ -162,6 +164,19 @@ bool handle_get_usb_api_version_request(uint8_t rhport, tusb_control_request_t c
 
 
 /**
+ * Request raw ADC reading.
+ */
+bool handle_get_adc_reading_request(uint8_t rhport, tusb_control_request_t const* request)
+{
+	static char buf[2];
+	uint16_t reading = get_adc_reading();
+	buf[0] = reading >> 8;
+	buf[1] = reading & 0xff;
+	return tud_control_xfer(rhport, request, buf, sizeof(buf));
+}
+
+
+/**
  * Request that changes the active LED pattern.
  */
 bool handle_set_led_pattern(uint8_t rhport, tusb_control_request_t const* request)
@@ -213,6 +228,8 @@ bool handle_allow_fpga_takeover_usb_finish(uint8_t rhport, tusb_control_request_
 static bool handle_vendor_request_setup(uint8_t rhport, tusb_control_request_t const* request)
 {
 	switch(request->bRequest) {
+		case VENDOR_REQUEST_GET_ADC_READING:
+			return handle_get_adc_reading_request(rhport, request);
 		case VENDOR_REQUEST_GET_ID:
 			return handle_get_id_request(rhport, request);
 		case VENDOR_REQUEST_GET_FIRMWARE_VERSION:

@@ -21,6 +21,7 @@
 
 static uint16_t revision = CYNTHION_REV_UNKNOWN;
 static bool gsg_production = false;
+static uint16_t reading = 0xffff;
 
 /**
  * Detect hardware revision using Cynthion pin straps.
@@ -50,12 +51,12 @@ void detect_hardware_revision(void)
     // Retrieve a single ADC reading.
     hri_adc_set_SWTRIG_START_bit(ADC);
 	while (!hri_adc_get_interrupt_RESRDY_bit(ADC));
-	uint16_t reading = hri_adc_read_RESULT_reg(ADC);
+	reading = hri_adc_read_RESULT_reg(ADC);
 
-    // Convert ADC measurement to a percentage of the reference voltage.
-    uint32_t percentage = (((uint32_t)reading * 100) + 2048) >> 12;
-    if (percentage > 51) {
-        percentage = 100 - percentage;
+    // Convert ADC measurement to per mille of the reference voltage.
+    uint32_t permille = (((uint32_t)reading * 1000) + 20480) >> 12;
+    if (permille > 510) {
+        permille = 1000 - permille;
         gsg_production = true;
     }
 
@@ -63,7 +64,7 @@ void detect_hardware_revision(void)
     hardware version  |  percent of +3V3
     ___________________________________________
     0.6               |  0-1
-    future versions   |  2-20
+    future versions   |  2-19
     1.4               |  21-22
     1.3               |  23-24
     1.2               |  25-26
@@ -79,21 +80,21 @@ void detect_hardware_revision(void)
     // Identify the board revision by comparing against expected thresholds.
     struct {
         uint16_t version;
-        uint8_t threshold;
+        uint16_t threshold;
     } revisions[] = {
-        { CYNTHION_REV_0_6,         1 },
-        { CYNTHION_REV_UNKNOWN,    20 },
-        { CYNTHION_REV_1_4,        22 },
-        { CYNTHION_REV_1_3,        24 },
-        { CYNTHION_REV_1_2,        26 },
-        { CYNTHION_REV_1_0,        28 },
-        { CYNTHION_REV_1_1,        31 },
-        { CYNTHION_REV_UNKNOWN,    48 },
-        { CYNTHION_REV_0_7,        51 },
+        { CYNTHION_REV_0_6,         10 },
+        { CYNTHION_REV_UNKNOWN,    195 },
+        { CYNTHION_REV_1_4,        220 },
+        { CYNTHION_REV_1_3,        240 },
+        { CYNTHION_REV_1_2,        260 },
+        { CYNTHION_REV_1_0,        280 },
+        { CYNTHION_REV_1_1,        310 },
+        { CYNTHION_REV_UNKNOWN,    480 },
+        { CYNTHION_REV_0_7,        510 },
     };
 
     int i = 0;
-    while (percentage > revisions[i].threshold) { ++i; }
+    while (permille > revisions[i].threshold) { ++i; }
     revision = revisions[i].version;
 }
 
@@ -119,6 +120,14 @@ const char *get_manufacturer_string(void)
 const char *get_product_string(void)
 {
         return (gsg_production) ? "Cynthion Apollo Debugger" : "Apollo Debugger";
+}
+
+/**
+ * Return the raw ADC value.
+ */
+uint16_t get_adc_reading(void)
+{
+    return reading;
 }
 
 #endif
