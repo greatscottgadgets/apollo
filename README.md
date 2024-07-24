@@ -6,14 +6,16 @@ Apollo consists of two main parts: firmware for the on-board debug microcontroll
 
 ## Installing Host Software
 
-To install the apollo-fpga Python module and the `apollo` command-line tool or to upgrade them to the latest version run:
+If you have a Cynthion, Apollo host software is installed automatically as a dependency when you [install Cynthion software](https://cynthion.readthedocs.io/en/latest/getting_started.html#cynthion-host-software-installation).
+
+To explicitly install the apollo-fpga Python module and the `apollo` command-line tool or to upgrade them to the latest version run:
 ```
 pip install --upgrade apollo-fpga
 ```
 
 ## Building and Installing Firmware
 
-To upgrade Apollo firmware on a Cynthion it is typically not necessary to compile the firmware yourself. Instead follow [Upgrading Cynthion Device Firmware](https://cynthion.readthedocs.io/en/latest/getting_started.html#upgrading-cynthion-device-firmware).
+To upgrade Apollo firmware on a Cynthion it is typically not necessary to compile the firmware yourself. Instead follow [Upgrading Cynthion Device Firmware](https://cynthion.readthedocs.io/en/latest/getting_started.html#updating-cynthion-microcontroller-firmware-and-fpga-configuration-flash).
 
 To compile and install onto Cynthion run:
 
@@ -22,13 +24,15 @@ $ cd apollo/firmware
 $ make APOLLO_BOARD=cynthion get-deps dfu
 ```
 
-This will download dependencies, compile the firmware, and install it onto Cynthion with [Saturn-V](https://github.com/greatscottgadgets/saturn-v).
+This will download dependencies, compile the firmware, and install it onto Cynthion with [pyfwup](https://github.com/greatscottgadgets/pyfwup) and [Saturn-V](https://github.com/greatscottgadgets/saturn-v).
 
-Alternatively you can use variables to specify an older hardware revision:
+Alternatively you can use variables to specify a different board or a fixed hardware revision:
 
 ```
 $ cd apollo/firmware
-$ make APOLLO_BOARD=cynthion BOARD_REVISION_MAJOR=0 BOARD_REVISION_MINOR=3 get-deps dfu
+$ make APOLLO_BOARD=cynthion BOARD_REVISION_MAJOR=1 BOARD_REVISION_MINOR=4 get-deps dfu
 ```
+
+A specified revision will override automatic hardware revision detection which is supported on Cynthion r0.6 and above. You must specify the revision to compile firmware for a Cynthion older than r0.6.
 
 Once installation is complete, LED A should activate, indicating that Apollo is running.
