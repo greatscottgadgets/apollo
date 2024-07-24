@@ -6,12 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+<!--
 ## [Unreleased]
+-->
+
+## [1.1.0] - 2024-07-24
+
+### Changed
+- Update README.
+- Bump USB API to 1.2.
+- Use fwup-util instead of dfu-util in firmware Makefile.
 
 ### Added
+- Print info for multiple devices with `apollo info`.
+- Add vendor request for ADC debugging.
 - Add optional timeout to `ApolloDebugger._find_device`.
 
+### Deprecated
+- Deprecate `print_device_info()`.
+
 ### Fixed
+- Extend Cynthion r1.4 hardware revision detection voltage range.
+- Always force FPGA offline for `apollo flash-info`.
+- Force FPGA offline before reading flash UID in `apollo info`.
 - Allow up to 5 seconds for re-enumeration after handoff of shared USB port.
 
 
@@ -115,7 +132,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial release.
 
 
-[Unreleased]: https://github.com/greatscottgadgets/apollo/compare/v1.0.7...HEAD
+[Unreleased]: https://github.com/greatscottgadgets/apollo/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/greatscottgadgets/apollo/compare/v1.0.7...v1.1.0
 [1.0.7]: https://github.com/greatscottgadgets/apollo/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/greatscottgadgets/apollo/compare/v1.0.5...v1.0.6
 [1.0.5]: https://github.com/greatscottgadgets/apollo/compare/v1.0.4...v1.0.5

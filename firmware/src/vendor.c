@@ -24,7 +24,7 @@
 #include "board_rev.h"
 
 #define USB_API_MAJOR 1
-#define USB_API_MINOR 1
+#define USB_API_MINOR 2
 
 
 // Supported vendor requests.
