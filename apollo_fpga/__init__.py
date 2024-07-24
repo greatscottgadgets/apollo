@@ -9,6 +9,7 @@ import time
 import usb.core
 import platform
 import errno
+import sys
 
 from .jtag  import JTAGChain
 from .spi   import DebugSPIConnection
@@ -17,6 +18,10 @@ from .ecp5  import ECP5_JTAGProgrammer, ECP5_JTAGDebugSPIConnection, ECP5_JTAGRe
 from .intel import IntelJTAGProgrammer
 
 from .onboard_jtag import *
+
+import importlib.metadata
+__version__ = importlib.metadata.version(__package__)
+
 
 class DebuggerNotFound(IOError):
     pass
@@ -84,12 +89,15 @@ class ApolloDebugger:
         0xFE: "Amalthea"
     }
 
+    backend = None
 
-    def __init__(self, force_offline=False):
+
+    def __init__(self, force_offline=False, device=None):
         """ Sets up a connection to the debugger. """
 
         # Try to create a connection to our Apollo debug firmware.
-        device = self._find_device(self.APOLLO_USB_IDS, custom_match=self._device_has_apollo_id)
+        if device is None:
+            device = self._find_device(self.APOLLO_USB_IDS, custom_match=self._device_has_apollo_id)
 
         # If Apollo VID/PID is not found, try to find a gateware VID/PID with a valid Apollo stub
         # interface. If found, request the gateware to liberate the USB port. In devices with a
@@ -99,10 +107,9 @@ class ApolloDebugger:
             # First, find the candidate device...
             fpga_device = self._find_device(self.LUNA_USB_IDS, custom_match=self._device_has_stub_iface)
             if fpga_device is None:
-                raise DebuggerNotFound("No Apollo device or stub interface found.")
+                raise DebuggerNotFound("No Apollo debugger or stub interface found.")
             elif not force_offline:
-                raise DebuggerNotFound("Apollo stub interface found. "
-                    "Switch the device to Apollo mode or add the `--force-offline` option.")
+                raise DebuggerNotFound("Apollo stub interface found but not requested to be forced offline.")
 
             # ... and now request a USB handoff to Apollo
             try:
@@ -113,7 +120,7 @@ class ApolloDebugger:
             # Wait for Apollo to enumerate and try again
             device = self._find_device(self.APOLLO_USB_IDS, custom_match=self._device_has_apollo_id, timeout=5000)
             if device is None:
-                raise DebuggerNotFound("Handoff was requested, but Apollo is not available")
+                raise DebuggerNotFound("Handoff was requested, but Apollo debugger not found.")
 
         self.device = device
         self.major, self.minor = self.get_hardware_revision()
@@ -147,30 +154,35 @@ class ApolloDebugger:
         request_type = usb.ENDPOINT_OUT | usb.RECIP_INTERFACE | usb.TYPE_VENDOR
         device.ctrl_transfer(request_type, REQUEST_APOLLO_ADV_STOP, wIndex=intf_number, timeout=5000)
 
-    @staticmethod
-    def _find_device(ids, custom_match=None, timeout=0):
-        import usb.backend.libusb1
+    @classmethod
+    def _init_backend(cls):
+        """Initialize the USB backend."""
+        if cls.backend is None:
+            import usb.backend.libusb1
 
-        # In Windows, we need to specify the libusb library location to create a backend.
-        if platform.system() == "Windows":
-            # Determine the path to libusb-1.0.dll.
-            try:
-                from importlib_resources import files # <= 3.8
-            except:
-                from importlib.resources import files # >= 3.9
-            libusb_dll = os.path.join(files("usb1"), "libusb-1.0.dll")
+            # In Windows, we need to specify the libusb library location to create a backend.
+            if platform.system() == "Windows":
+                # Determine the path to libusb-1.0.dll.
+                try:
+                    from importlib_resources import files # <= 3.8
+                except:
+                    from importlib.resources import files # >= 3.9
+                libusb_dll = os.path.join(files("usb1"), "libusb-1.0.dll")
 
-            # Create a backend by explicitly passing the path to libusb_dll.
-            backend = usb.backend.libusb1.get_backend(find_library=lambda x: libusb_dll)
-        else:
-            # On other systems we can just use the default backend.
-            backend = usb.backend.libusb1.get_backend()
+                # Create a backend by explicitly passing the path to libusb_dll.
+                cls.backend = usb.backend.libusb1.get_backend(find_library=lambda x: libusb_dll)
+            else:
+                # On other systems we can just use the default backend.
+                cls.backend = usb.backend.libusb1.get_backend()
 
-        # Find the device.
+    @classmethod
+    def _find_device(cls, ids, custom_match=None, timeout=0):
+        """Find a USB device matching a list of VID/PIDs."""
+        cls._init_backend()
         wait = 0
         while True:
             for vid, pid in ids:
-                device = usb.core.find(backend=backend, idVendor=vid, idProduct=pid, custom_match=custom_match)
+                device = usb.core.find(backend=cls.backend, idVendor=vid, idProduct=pid, custom_match=custom_match)
                 if device is not None:
                     return device
             # Should we wait and try again?
@@ -178,12 +190,33 @@ class ApolloDebugger:
                 break
             time.sleep(0.5)
             wait += 500
-            
         return None
+
+    @classmethod
+    def _find_all_devices(cls, ids, custom_match=None):
+        """Find all USB devices matching a list of VID/PIDs."""
+        cls._init_backend()
+        devices = []
+        candidates = []
+
+        for vid, pid in ids:
+            candidates.extend(usb.core.find(True, cls.backend, idVendor=vid, idProduct=pid))
+
+        for device in candidates:
+            try:
+                if custom_match is None or custom_match(device):
+                    devices.append(device)
+            except (usb.USBError, NotImplementedError):
+                # A permissions error or NotImplementedError is likely on
+                # Windows if the device is not the expected type of device.
+                # Other typical errors are transient conditions shortly after
+                # device enumeration of a device that is not yet ready.
+                pass
+        return devices
 
     @staticmethod
     def _device_has_stub_iface(device, return_iface=False):
-        """ Checks if a device has an Apollo stub interface present.
+        """Check if a device has an Apollo stub interface present.
 
         Optionally return the interface itself.
         """
@@ -195,12 +228,10 @@ class ApolloDebugger:
 
     @staticmethod
     def _device_has_apollo_id(device):
-        """ Checks if a device identifies itself as Apollo."""
+        """Check if a device identifies itself as an Apollo debugger."""
         request_type = usb.ENDPOINT_IN | usb.RECIP_DEVICE | usb.TYPE_VENDOR
         try:
             response = device.ctrl_transfer(request_type, ApolloDebugger.REQUEST_GET_ID, data_or_wLength=256, timeout=500)
-            apollo_id = bytes(response).decode('utf-8').split('\x00')[0]
-            return True if "Apollo" in apollo_id else False
         except usb.USBError as e:
             if e.errno == errno.EPIPE:
                 # A pipe error occurs when the device does not implement a
@@ -209,6 +240,10 @@ class ApolloDebugger:
                 return False
             else:
                 raise
+        finally:
+            usb.util.dispose_resources(device)
+        apollo_id = bytes(response).decode('utf-8').split('\x00')[0]
+        return True if "Apollo" in apollo_id else False
 
     def detect_connected_version(self):
         """ Attempts to determine the revision of the connected hardware.
@@ -376,3 +411,78 @@ class ApolloDebugger:
     def get_usb_api_version_string(self):
         (api_major, api_minor) = self.get_usb_api_version()
         return (f"{api_major}.{api_minor}")
+
+    @classmethod
+    def print_info(cls, ids=None, stub_ids=None, force_offline=False, timeout=5000, out=print):
+        """ Print information about Apollo and all connected Apollo devices.
+
+        Return True if any connected device is found.
+        """
+        out(f"Apollo version: {__version__}")
+        out(f"Python version: {sys.version}\n")
+
+        found_device = False
+        if ids is None:
+            ids = cls.APOLLO_USB_IDS
+        if stub_ids is None:
+            stub_ids = cls.LUNA_USB_IDS
+
+        # Look for devices with stub interfaces.
+        stub_devs = cls._find_all_devices(stub_ids, cls._device_has_stub_iface)
+
+        for device in stub_devs:
+            found_device = True
+            out("Found Apollo stub interface!")
+            out(f"\tBitstream: {device.product} ({device.manufacturer})")
+            out(f"\tVendor ID: {device.idVendor:04x}")
+            out(f"\tProduct ID: {device.idProduct:04x}")
+            out(f"\tbcdDevice: {device.bcdDevice:04x}")
+            out(f"\tBitstream serial number: {device.serial_number}")
+            out("")
+
+        count = 0
+        if force_offline:
+            apollo_devs = cls._find_all_devices(ids, cls._device_has_apollo_id)
+            count = len(apollo_devs) + len(stub_devs)
+            for device in apollo_devs:
+                usb.util.dispose_resources(device)
+            if count > 0:
+                out(f"Forcing offline.\n")
+            for device in stub_devs:
+                try:
+                    cls._request_handoff(device)
+                except usb.USBError as e:
+                    raise DebuggerNotFound(f"Handoff request failed: {e.strerror}")
+
+        # Look for Apollo debuggers.
+        start = time.time()
+        while True:
+            apollo_devs = cls._find_all_devices(ids, cls._device_has_apollo_id)
+            if len(apollo_devs) >= count:
+                break;
+            if ((time.time() - start) * 1000) >= timeout:
+                raise DebuggerNotFound("Handoff was requested, but Apollo debugger not found.")
+            time.sleep(0.1)
+
+        for device in apollo_devs:
+            found_device = True
+            debugger = ApolloDebugger(device=device)
+            out(f"Found {debugger.get_compatibility_string()} device!")
+            out(f"\tHardware: {debugger.get_hardware_name()}")
+            out(f"\tManufacturer: {device.manufacturer}")
+            out(f"\tProduct: {device.product}")
+            out(f"\tSerial number: {device.serial_number}")
+            out(f"\tVendor ID: {device.idVendor:04x}")
+            out(f"\tProduct ID: {device.idProduct:04x}")
+            out(f"\tbcdDevice: {device.bcdDevice:04x}")
+            out(f"\tFirmware version: {debugger.get_firmware_version()}")
+            out(f"\tUSB API version: {debugger.get_usb_api_version_string()}")
+            if force_offline:
+                debugger.force_fpga_offline()
+                with debugger.jtag as jtag:
+                    programmer = debugger.create_jtag_programmer(jtag)
+                    flash_uid = programmer.read_flash_uid()
+                    out(f"\tFlash UID: {flash_uid:016x}")
+            out("")
+
+        return found_device

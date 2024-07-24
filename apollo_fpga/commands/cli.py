@@ -18,8 +18,9 @@ import argparse
 from collections import namedtuple
 import xdg.BaseDirectory
 from functools import partial
+import deprecation
 
-from apollo_fpga import ApolloDebugger
+from apollo_fpga import ApolloDebugger, __version__
 from apollo_fpga.jtag import JTAGChain, JTAGPatternError
 from apollo_fpga.ecp5 import ECP5_JTAGProgrammer, ECP5FlashBridgeProgrammer
 from apollo_fpga.onboard_jtag import *
@@ -76,6 +77,9 @@ JEDEC_PARTS = {
 }
 
 
+@deprecation.deprecated(deprecated_in="1.1.0", removed_in="2.0.0",
+                        current_version=__version__,
+                        details="Use ApolloDebugger.print_info() instead.")
 def print_device_info(device, args):
     """ Command that prints information about devices connected to the scan chain to the console. """
 
@@ -84,10 +88,12 @@ def print_device_info(device, args):
     logging.info(f"\tSerial number: {device.serial_number}")
     logging.info(f"\tFirmware version: {device.get_firmware_version()}")
     logging.info(f"\tUSB API version: {device.get_usb_api_version_string()}")
-    with device.jtag as jtag:
-        programmer = device.create_jtag_programmer(jtag)
-        flash_uid = programmer.read_flash_uid()
-    logging.info(f"\tFlash UID: {flash_uid:016x}")
+    if args.force_offline:
+        device.force_fpga_offline()
+        with device.jtag as jtag:
+            programmer = device.create_jtag_programmer(jtag)
+            flash_uid = programmer.read_flash_uid()
+        logging.info(f"\tFlash UID: {flash_uid:016x}")
 
 def print_chain_info(device, args):
     """ Command that prints information about devices connected to the scan chain to the console. """
@@ -239,7 +245,7 @@ def read_back_flash(device, args):
 
 def print_flash_info(device, args):
     """ Command that prints information about the currently connected FPGA's configuration flash. """
-    ensure_unconfigured(device)
+    device.force_fpga_offline()
     serial_number = device.serial_number
 
     with device.jtag as jtag:
@@ -349,7 +355,7 @@ COMMANDS = [
             help="Print device info.", ),
     Command("jtag-scan", handler=print_chain_info,
             help="Prints information about devices on the onboard JTAG chain."),
-    Command("flash-info", handler=print_flash_info, args=[(("--force-offline",), dict(action='store_true'))],
+    Command("flash-info", handler=print_flash_info,
             help="Prints information about the FPGA's attached configuration flash."),
 
     # Flash commands
@@ -414,10 +420,17 @@ def main():
 
     # Force the FPGA offline by default in most commands to force Apollo mode if needed.
     force_offline = args.force_offline if "force_offline" in args else True
-    device = ApolloDebugger(force_offline=force_offline)
 
     # Set up python's logging to act as a simple print, for now.
     logging.basicConfig(level=logging.INFO, format="%(message)-s")
+
+    if args.command == "info":
+        if ApolloDebugger.print_info(force_offline=force_offline, out=logging.info):
+            if not force_offline:
+                logging.info(f"For additional device information use the --force-offline option.")
+        return
+
+    device = ApolloDebugger(force_offline=force_offline)
 
     # Execute the relevant command.
     args.func(device, args)
