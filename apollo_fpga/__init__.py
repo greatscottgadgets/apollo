@@ -27,6 +27,10 @@ class DebuggerNotFound(IOError):
     pass
 
 
+class USBAPIRequirement(Exception):
+    pass
+
+
 def create_ila_frontend(ila, *, use_cs_multiplexing=False):
     """ Convenience method that instantiates an Apollo debug session and creates an ILA frontend from it.
 
@@ -61,6 +65,7 @@ class ApolloDebugger:
     REQUEST_SET_LED_PATTERN         = 0xa1
     REQUEST_GET_FIRMWARE_VERSION    = 0xa2
     REQUEST_GET_USB_API_VERSION     = 0xa3
+    REQUEST_GET_ADC_READING         = 0xa4
     REQUEST_RECONFIGURE             = 0xc0
     REQUEST_FORCE_FPGA_OFFLINE      = 0xc1
     REQUEST_ALLOW_FPGA_TAKEOVER_USB = 0xc2
@@ -397,20 +402,35 @@ class ApolloDebugger:
 
 
     def get_firmware_version(self):
+        """Return attached device's firmware version string."""
         c_string = self.in_request(self.REQUEST_GET_FIRMWARE_VERSION, length=256)
         return c_string.decode('utf-8').split('\x00')[0]
 
-
     def get_usb_api_version(self):
+        """Return attached device's USB API version as a (major, minor) tuple."""
         raw_api_version = self.in_request(self.REQUEST_GET_USB_API_VERSION, length=2)
         api_major = int(raw_api_version[0])
         api_minor = int(raw_api_version[1])
         return (api_major, api_minor)
 
-
     def get_usb_api_version_string(self):
+        """Return attached device's USB API version as a string."""
         (api_major, api_minor) = self.get_usb_api_version()
         return (f"{api_major}.{api_minor}")
+
+    def require_usb_api_version(self, minimum):
+        """Verify that the attached device meets a minimum USB API version requirement."""
+        (dev_major, dev_minor) = self.get_usb_api_version()
+        (req_major, req_minor) = minimum
+        if dev_major < req_major or (dev_major == req_major and dev_minor < req_minor):
+            raise USBAPIRequirement(f"Apollo debugger USB API {self.get_usb_api_version_string()} "
+                    f"does not meet minimum required {minimum}. Please upgrade firmware.")
+
+    def get_adc_reading(self):
+        """Return raw ADC reading from attached device."""
+        self.require_usb_api_version((1, 2))
+        reading_bytes = self.in_request(self.REQUEST_GET_ADC_READING, length=2)
+        return (reading_bytes[0] << 8) + reading_bytes[1]
 
     @classmethod
     def print_info(cls, ids=None, stub_ids=None, force_offline=False, timeout=5000, out=print):
@@ -475,6 +495,10 @@ class ApolloDebugger:
             out(f"\tVendor ID: {device.idVendor:04x}")
             out(f"\tProduct ID: {device.idProduct:04x}")
             out(f"\tbcdDevice: {device.bcdDevice:04x}")
+            try:
+                out(f"\tADC reading: {debugger.get_adc_reading()}")
+            except USBAPIRequirement:
+                pass
             out(f"\tFirmware version: {debugger.get_firmware_version()}")
             out(f"\tUSB API version: {debugger.get_usb_api_version_string()}")
             if force_offline:
