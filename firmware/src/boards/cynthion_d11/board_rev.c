@@ -50,8 +50,16 @@ void detect_hardware_revision(void)
 
     // Retrieve a single ADC reading.
     hri_adc_set_SWTRIG_START_bit(ADC);
-	while (!hri_adc_get_interrupt_RESRDY_bit(ADC));
-	reading = hri_adc_read_RESULT_reg(ADC);
+    while (!hri_adc_get_interrupt_RESRDY_bit(ADC));
+    reading = hri_adc_read_RESULT_reg(ADC);
+
+    /*
+     * Read the ADC a second time and discard the previous reading to eliminate
+     * error. Initial readings at start-up are typically 0.2% to 1.0% high.
+     */
+    hri_adc_set_SWTRIG_START_bit(ADC);
+    while (!hri_adc_get_interrupt_RESRDY_bit(ADC));
+    reading = hri_adc_read_RESULT_reg(ADC);
 
     // Convert ADC measurement to per mille of the reference voltage.
     uint32_t permille = (((uint32_t)reading * 1000) + 20480) >> 12;
