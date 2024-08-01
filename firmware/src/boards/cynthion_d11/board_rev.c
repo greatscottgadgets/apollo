@@ -50,12 +50,20 @@ void detect_hardware_revision(void)
 
     // Retrieve a single ADC reading.
     hri_adc_set_SWTRIG_START_bit(ADC);
-	while (!hri_adc_get_interrupt_RESRDY_bit(ADC));
-	reading = hri_adc_read_RESULT_reg(ADC);
+    while (!hri_adc_get_interrupt_RESRDY_bit(ADC));
+    reading = hri_adc_read_RESULT_reg(ADC);
+
+    /*
+     * Read the ADC a second time and discard the previous reading to eliminate
+     * error. Initial readings at start-up are typically 0.2% to 1.0% high.
+     */
+    hri_adc_set_SWTRIG_START_bit(ADC);
+    while (!hri_adc_get_interrupt_RESRDY_bit(ADC));
+    reading = hri_adc_read_RESULT_reg(ADC);
 
     // Convert ADC measurement to per mille of the reference voltage.
-    uint32_t permille = (((uint32_t)reading * 1000) + 20480) >> 12;
-    if (permille > 510) {
+    uint32_t permille = ((uint32_t)reading * 1000) >> 12;
+    if (permille > 515) {
         permille = 1000 - permille;
         gsg_production = true;
     }
@@ -82,15 +90,15 @@ void detect_hardware_revision(void)
         uint16_t version;
         uint16_t threshold;
     } revisions[] = {
-        { CYNTHION_REV_0_6,         10 },
-        { CYNTHION_REV_UNKNOWN,    195 },
-        { CYNTHION_REV_1_4,        220 },
-        { CYNTHION_REV_1_3,        240 },
-        { CYNTHION_REV_1_2,        260 },
-        { CYNTHION_REV_1_0,        280 },
-        { CYNTHION_REV_1_1,        310 },
-        { CYNTHION_REV_UNKNOWN,    480 },
-        { CYNTHION_REV_0_7,        510 },
+        { CYNTHION_REV_0_6,         15 },
+        { CYNTHION_REV_UNKNOWN,    200 },
+        { CYNTHION_REV_1_4,        225 },
+        { CYNTHION_REV_1_3,        245 },
+        { CYNTHION_REV_1_2,        265 },
+        { CYNTHION_REV_1_0,        285 },
+        { CYNTHION_REV_1_1,        315 },
+        { CYNTHION_REV_UNKNOWN,    485 },
+        { CYNTHION_REV_0_7,        515 },
     };
 
     int i = 0;
