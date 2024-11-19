@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 -->
 
+## [1.1.1] - 2024-11-19
+
+### Added
+- Add ADC reading to `apollo info`.
+
+### Fixed
+- Fix firmware bugs in board revision detection.
+
+
 ## [1.1.0] - 2024-07-24
 
 ### Changed
@@ -132,7 +141,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial release.
 
 
-[Unreleased]: https://github.com/greatscottgadgets/apollo/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/greatscottgadgets/apollo/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/greatscottgadgets/apollo/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/greatscottgadgets/apollo/compare/v1.0.7...v1.1.0
 [1.0.7]: https://github.com/greatscottgadgets/apollo/compare/v1.0.6...v1.0.7
 [1.0.6]: https://github.com/greatscottgadgets/apollo/compare/v1.0.5...v1.0.6
