@@ -33,12 +33,6 @@ dependencies = [
 ]
 dynamic = ["version"]
 
-[project.optional-dependencies]
-py_ci = [
-    "amaranth==0.4.1",
-    "luna-usb~=0.1",
-]
-
 [project.urls]
 repository = "https://github.com/greatscottgadgets/apollo"
 issues     = "https://github.com/greatscottgadgets/apollo/issues"
