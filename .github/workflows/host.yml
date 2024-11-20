@@ -32,5 +32,7 @@ jobs:
     - name: Install dependencies
       run: |
         pdm install -G :all
+        pdm add amaranth==0.4.1
+        pdm add luna-usb~=0.1
     - name: Run tests
       run: pdm run test
