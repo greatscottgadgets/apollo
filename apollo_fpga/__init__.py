@@ -20,6 +20,7 @@ from .intel import IntelJTAGProgrammer
 from .onboard_jtag import *
 
 import importlib.metadata
+import importlib.resources
 __version__ = importlib.metadata.version(__package__)
 
 
@@ -168,11 +169,7 @@ class ApolloDebugger:
             # In Windows, we need to specify the libusb library location to create a backend.
             if platform.system() == "Windows":
                 # Determine the path to libusb-1.0.dll.
-                try:
-                    from importlib_resources import files # <= 3.8
-                except:
-                    from importlib.resources import files # >= 3.9
-                libusb_dll = os.path.join(files("usb1"), "libusb-1.0.dll")
+                libusb_dll = os.path.join(importlib.resources.files("usb1"), "libusb-1.0.dll")
 
                 # Create a backend by explicitly passing the path to libusb_dll.
                 cls.backend = usb.backend.libusb1.get_backend(find_library=lambda x: libusb_dll)
