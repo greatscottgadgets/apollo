@@ -10,7 +10,7 @@ authors = [
 license = { text = "BSD" }
 description = "Python library and host tools for Apollo FPGA debug controllers."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     'Programming Language :: Python',
     'Development Status :: 5 - Production/Stable',
@@ -24,7 +24,6 @@ classifiers = [
     'Topic :: Scientific/Engineering',
 ]
 dependencies = [
-    "importlib_resources; python_version<'3.9'",
     "pyusb>1.1.1",
     "pyvcd>=0.2.4",
     "prompt-toolkit>3.0.16",
